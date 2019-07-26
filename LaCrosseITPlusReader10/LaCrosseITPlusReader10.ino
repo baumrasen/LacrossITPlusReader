@@ -9,10 +9,8 @@
 // Changelog: 2012-02-11: initial release 1.0
 //            2014-03-14: I have this in SubVersion, so no need to do it here
 
-//// http://forum.fhem.de/index.php/topic,14786.msg268544.html#msg268544
-
 #define PROGNAME         "LaCrosseITPlusReader"
-#define PROGVERS         "10.1i"
+#define PROGVERS         "10.1j"
 
 #include "RFMxx.h"
 #include "SensorBase.h"
@@ -28,20 +26,21 @@
 
 // --- Configuration ---------------------------------------------------------
 #define RECEIVER_ENABLED      1                     // Set to 0 if you don't want to receive 
-#define ANALYZE_FRAMES        0                     // Set to 1 to display analyzed frame data instead of the normal data
 #define ENABLE_ACTIVITY_LED   1                     // set to 0 if the blue LED bothers
 #define USE_OLD_IDS           0                     // Set to 1 to use the old ID calcualtion
 // The following settings can also be set from FHEM
 bool DEBUG                  = 0;                    // set to 1 to see debug messages
+bool ANALYZE_FRAMES         = 0;                    // set to 1 to display analyzed frame data instead of the normal data
 unsigned long DATA_RATE     = 17241ul;              // use one of the possible data rates
 uint16_t TOGGLE_DATA_RATE   = 0;                    // 0=no toggle, else interval in seconds
-unsigned long INITIAL_FREQ  = 868300;               // Initial frequency in kHz (5 kHz steps, 860480 ... 879515) 
-bool RELAY                  = 0;                    // If 1 all received packets will be retransmitted  
-byte TOGGLE_MODE            = 3;                    // Bits 1: 17.241 kbps, 2 : 9.579 kbps, 4 : 8.842 kbps
-bool PASS_PAYLOAD           = 0;                    // If 1 the received payload ist transmitted on the serial port
+unsigned long INITIAL_FREQ  = 868300;               // initial frequency in kHz (5 kHz steps, 860480 ... 879515) 
+bool RELAY                  = 0;                    // if 1 all received packets will be retransmitted  
+byte TOGGLE_MODE            = 3;                    // bits 1: 17.241 kbps, 2 : 9.579 kbps, 4 : 8.842 kbps
+byte PASS_PAYLOAD           = 0;                    // transmitted the payload on the serial port
+                                                    // 1: all, 2: only undecoded data
 
 
-// --- Variables --------------------------------------------------------------
+// --- Variables -------------------------------------------------------------
 unsigned long lastToggle = 0;
 byte commandData[32];
 byte commandDataPointer = 0;
@@ -87,6 +86,9 @@ static void HandleSerialPort(char c) {
         case 2:
           DATA_RATE = 8842ul;
           break;
+        default:
+          DATA_RATE = value;
+          break;
       }
       rfm.SetDataRate(DATA_RATE);
       break;
@@ -129,6 +131,10 @@ static void HandleSerialPort(char c) {
 
     case 'y':
       RELAY = value;
+      break;
+    
+    case 'z':
+      ANALYZE_FRAMES = value;
       break;
 
     default:
@@ -198,29 +204,7 @@ void HandleCommandC(byte *values, byte size){
 
 // This function is for testing 
 void HandleCommandX(byte value) {
-  LaCrosse::Frame frame;
-  frame.ID = 20;
-  frame.NewBatteryFlag = true;
-  frame.Bit12 = false;
-  frame.Temperature = value;
-  frame.WeakBatteryFlag = false;
-  frame.Humidity = value;
 
-  if (DEBUG) {
-    Serial.print("TX: T=");
-    Serial.print(frame.Temperature);
-    Serial.print(" H=");
-    Serial.print(frame.Humidity);
-    Serial.print(" NB=");
-    Serial.print(frame.NewBatteryFlag);
-    Serial.println();
-  }
-
-  byte bytes[LaCrosse::FRAME_LENGTH];
-  LaCrosse::EncodeFrame(&frame, bytes);
-  rfm.SendArray(bytes, LaCrosse::FRAME_LENGTH);
-
-  rfm.EnableReceiver(RECEIVER_ENABLED);
 }
 
 void HandleCommandV() {
@@ -285,7 +269,7 @@ void loop(void) {
         TX38IT::AnalyzeFrame(payload);
         Serial.println();
       }
-      else if (PASS_PAYLOAD) {
+      else if (PASS_PAYLOAD == 1) {
         jeeLink.Blink(1);
         for (int i = 0; i < PAYLOADSIZE; i++) {
           Serial.print(payload[i], HEX);
@@ -335,6 +319,13 @@ void loop(void) {
         // Try TX38IT
         else if (TX38IT::TryHandleData(payload)) {
           frameLength = TX38IT::FRAME_LENGTH;
+        }
+        else if (PASS_PAYLOAD == 2) {
+          for (int i = 0; i < PAYLOADSIZE; i++) {
+            Serial.print(payload[i], HEX);
+            Serial.print(" ");
+          }
+          Serial.println();
         }
        
 

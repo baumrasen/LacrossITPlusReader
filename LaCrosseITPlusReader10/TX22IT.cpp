@@ -24,6 +24,19 @@ each quartet starts with a type indicator (here 0,1,2,3,4)
 next two bytes (here bd) are crc.
 During acquisition/synchronizing phase (abt. 5 hours) all 5 quartets are sent, see example above. Thereafter
 data strings contain only a few ( 1 up to 3) quartets, so data strings are not always of equal length.
+
+
+                    |--- acquisition/synchronizing phase
+                    ||-- Error
+        "A"  -Addr.-|| Nbr.Q
+        SSSS.DDDD DDAE.QQQQ  T          H          R          W          G           CRC
+TX22IT [A    1    D    3                1  0 7 2   2  0 1 B   3  C F E               C4    ] CRC:OK S:A ID:7 NewBatt:0 Error:1 Temp:---   Hum:72  Rain:27.00 Wind:25.40m/s from:270.00 Gust:---      CRC:C4
+TX22IT [A    1    D    2                           2  0 1 B   3  D F E               3A    ] CRC:OK S:A ID:7 NewBatt:0 Error:1 Temp:---   Hum:--- Rain:27.00 Wind:25.40m/s from:292.50 Gust:---      CRC:3A
+TX22IT [A    1    D    2                           2  0 1 B   3  E F E               17    ] CRC:OK S:A ID:7 NewBatt:0 Error:1 Temp:---   Hum:--- Rain:27.00 Wind:25.40m/s from:315.00 Gust:---      CRC:17
+TX22IT [A    1    C    3                1  0 7 3   2  0 1 B              4  0  0  0  8A    ] CRC:OK S:A ID:7 NewBatt:0 Error:0 Temp:---   Hum:73  Rain:27.00 Wind:---      from:---    Gust:0.00 m/s CRC:8A
+TX22IT [A    1    C    1                           2  0 1 B                          E     ] CRC:OK S:A ID:7 NewBatt:0 Error:0 Temp:---   Hum:--- Rain:27.00 Wind:---      from:---    Gust:---      CRC:E
+TX22IT [A    1    C    2     0  5 5 3              2  0 1 B                          19    ] CRC:OK S:A ID:7 NewBatt:0 Error:0 Temp:15.30 Hum:--- Rain:27.00 Wind:---      from:---    Gust:---      CRC:19
+
 */
 
 byte TX22IT::CalculateCRC(byte data[]) {
@@ -90,6 +103,7 @@ void TX22IT::DecodeFrame(byte *bytes, struct Frame *frame) {
   frame->Header = 0;
   frame->ID = 0;
   frame->NewBatteryFlag = false;
+  frame->LowBatteryFlag = false;
   frame->ErrorFlag = false; 
 
   frame->HasTemperature = false;
@@ -152,7 +166,7 @@ void TX22IT::DecodeFrame(byte *bytes, struct Frame *frame) {
 
         case 2:
           frame->HasRain = true;
-          frame->Rain = DecodeValue(q1, q2, q3);
+          frame->Rain = q1 * 256 + q2 * 16 + q3;
           break;
 
         case 3:
@@ -170,7 +184,7 @@ void TX22IT::DecodeFrame(byte *bytes, struct Frame *frame) {
       }
 
     }
-
+    
   }
 }
 
@@ -219,47 +233,65 @@ String TX22IT::GetFhemDataString(struct Frame *frame) {
    |  |--------------------------------------------------------- fix "WS"
    |------------------------------------------------------------ fix "OK"
 
-   * Flags: 777 666 555 444 333 222 111 000        
-                                     |   |
-                                     |   |-- New battery
-                                     |------ ERROR
-
+   * Flags: 128  64  32  16  8   4   2   1        
+                                 |   |   |
+                                 |   |   |-- New battery
+                                 |   |------ ERROR
+                                 |---------- Low battery
 */
+  
+  String pBuf = "";
 
-  String pBuf;
-  pBuf += "OK WS ";
-  pBuf += frame->ID;
-  pBuf += " 1";
-
-  // add temperature
-  pBuf += AddWord(frame->Temperature * 10 + 1000, frame->HasTemperature);
-
-  // add humidity
-  pBuf += AddByte(frame->Humidity, frame->HasHumidity);
-
-  // add rain
-  pBuf += AddWord(frame->Rain, frame->HasRain);
-
-  // add wind direction
-  pBuf += AddWord(frame->WindDirection * 10, frame->HasWindDirection);
-
-  // add windspeed
-  pBuf += AddWord(frame->WindSpeed * 10, frame->HasWindSpeed);
-
-  // add gust
-  pBuf += AddWord(frame->WindGust * 10, frame->HasWindGust);
-
-
-  // add Flags
-  byte flags = 0;
-  if (frame->NewBatteryFlag) {
-    flags += 1;
-  }
+  // Check if data is in the valid range
+  bool isValid = true;
   if (frame->ErrorFlag) {
-    flags += 2;
+    isValid = false;
   }
-  pBuf += AddByte(flags, true);
+  if (frame->HasTemperature && (frame->Temperature < -40.0 || frame->Temperature > 59.9)) {
+    isValid = false;
+  }
+  if(frame->HasHumidity && (frame->Humidity < 1 || frame->Humidity > 99)) {
+    isValid = false;
+  }
+  
+  if(isValid) {
+    pBuf += "OK WS ";
+    pBuf += frame->ID;
+    pBuf += " 1";
 
+    // add temperature
+    pBuf += AddWord(frame->Temperature * 10 + 1000, frame->HasTemperature);
+
+    // add humidity
+    pBuf += AddByte(frame->Humidity, frame->HasHumidity);
+
+    // add rain
+    pBuf += AddWord(frame->Rain, frame->HasRain);
+
+    // add wind direction
+    pBuf += AddWord(frame->WindDirection * 10, frame->HasWindDirection);
+
+    // add wind speed
+    pBuf += AddWord(frame->WindSpeed * 10, frame->HasWindSpeed);
+
+    // add gust
+    pBuf += AddWord(frame->WindGust * 10, frame->HasWindGust);
+
+
+    // add Flags
+    byte flags = 0;
+    if (frame->NewBatteryFlag) {
+      flags += 1;
+    }
+    if (frame->ErrorFlag) {
+      flags += 2;
+    }
+    if (frame->LowBatteryFlag) {
+      flags += 4;
+    }
+    pBuf += AddByte(flags, true);
+  }
+  
   return pBuf;
 }
 
@@ -318,6 +350,10 @@ void TX22IT::AnalyzeFrame(byte *data) {
     // New battery flag
     Serial.print(" NewBatt:");
     Serial.print(frame.NewBatteryFlag, DEC);
+    
+    // Low battery flag
+    Serial.print(" LowBatt:");
+    Serial.print(frame.LowBatteryFlag, DEC);
 
     // Error flag
     Serial.print(" Error:");

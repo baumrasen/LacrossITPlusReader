@@ -11,6 +11,7 @@ public:
     byte  Header;
     byte  ID;
     bool  NewBatteryFlag;
+    bool  LowBatteryFlag;
     bool  ErrorFlag;    
     byte  CRC;
     bool  IsValid;

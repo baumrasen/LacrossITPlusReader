@@ -49,19 +49,7 @@ void RFMxx::SetDataRate(unsigned long dataRate) {
     WriteReg(0x04, r & 0xFF); 
   }
   else {
-    byte bt;
-    if (m_dataRate == 17241) {
-      bt = 0x13;
-    }
-    else if (m_dataRate == 9579) {
-      bt = 0x23;
-    }
-    else if (m_dataRate == 8842) {
-      bt = 0x26;
-    }
-    else {
-      bt = (byte)(344828UL / m_dataRate) - 1;
-    }
+    byte bt = (byte)(round(344828.0 / m_dataRate)) - 1;
     RFMxx::spi16(0xC600 | bt);
   }
 }
