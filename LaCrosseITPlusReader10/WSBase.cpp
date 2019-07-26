@@ -2,7 +2,7 @@
 
 String WSBase::BuildFhemDataString(struct Frame *frame, byte sensorType) {
   /* Format
-  OK WS 60  1   4   193 52    2 88  4   101 15  20   ID=60  21.7°C  52%rH  600mm  Dir.: 112.5°  Wind:15m/s  Gust:20m/s
+  OK WS 60  1   4   193 52    2 88  4   101 15  20   ID=60  21.7ï¿½C  52%rH  600mm  Dir.: 112.5ï¿½  Wind:15m/s  Gust:20m/s
   OK WS ID  XXX TTT TTT HHH RRR RRR DDD DDD SSS SSS GGG GGG FFF PPP PPP
   |  |  |   |   |   |   |   |   |   |   |   |   |   |   |   |-- Flags *
   |  |  |   |   |   |   |   |   |   |   |   |   |   |   |------ WindGust * 10 LSB (0.0 ... 50.0 m/s)           FF/FF = none
@@ -14,7 +14,7 @@ String WSBase::BuildFhemDataString(struct Frame *frame, byte sensorType) {
   |  |  |   |   |   |   |   |   |------------------------------ Rain LSB (0 ... 9999 mm)                       FF/FF = none
   |  |  |   |   |   |   |   |---------------------------------- Rain MSB
   |  |  |   |   |   |   |-------------------------------------- Humidity (1 ... 99 %rH)                        FF = none
-  |  |  |   |   |   |------------------------------------------ Temp * 10 + 1000 LSB (-40 ... +60 °C)          FF/FF = none
+  |  |  |   |   |   |------------------------------------------ Temp * 10 + 1000 LSB (-40 ... +60 ï¿½C)          FF/FF = none
   |  |  |   |   |---------------------------------------------- Temp * 10 + 1000 MSB
   |  |  |   |-------------------------------------------------- Sensor type (1=TX22IT, 2=NodeSensor, 3=WS1080)
   |  |  |------------------------------------------------------ Sensor ID (1 ... 63)
@@ -231,3 +231,130 @@ String WSBase::AnalyzeFrame(byte *data, Frame *frame, byte frameLength, String p
 
   return result;
 }
+
+String WSBase::BuildKVDataString(struct Frame *frame, byte sensorType) {
+  // KeyValue example
+  // Format:  KV <Type> <Address> <Key>=<Value>,<Key>=<Value>,<Key>=<Value>, ...
+  // Example: KV ADDON 01 Voltage=3.3,UpTime=100
+  // -> LGW will send it as KeyValueProtocol to FHEM
+
+  String pBuf = "";
+  String pBuf2 = "";
+   String pBuf3;
+  String sensorTypeName = "";
+
+  // Check if data is in the valid range
+  bool isValid = true;
+  if (frame->ErrorFlag) {
+    isValid = false;
+  }
+
+  switch (sensorType) {
+    case 3: sensorTypeName = "WH1080"; break;
+    case 4: sensorTypeName = "LG"; break;
+    case 5: sensorTypeName = "WH25"; break;
+    case 6: sensorTypeName = "W136"; break;
+    case 7: sensorTypeName = "WH24"; break;
+  }
+
+
+  if (isValid) {
+    pBuf += "OK VALUES ";
+    pBuf += sensorTypeName;
+    pBuf += " ";
+    pBuf += frame->ID;
+    pBuf += " ";
+
+  //  pBuf += "Header=";
+  //  pBuf += frame->Header;
+  //  pBuf += ",";
+
+    // add temperature
+    if (frame->HasTemperature && (frame->Temperature < -40.0 || frame->Temperature > 59.9)) {
+      isValid = false;
+    } else {
+      pBuf += "Temperature=";
+      pBuf += frame->Temperature;
+      pBuf += ",";
+    }
+    // add humidity
+    if (frame->HasHumidity && (frame->Humidity < 1 || frame->Humidity > 100)) {
+      isValid = false;
+    } else {
+      pBuf += "Humidity=";
+      pBuf += frame->Humidity;
+      pBuf += ",";
+    }
+    // add pressure
+    if (frame->HasPressure) {
+      if ( (frame->Pressure > 500 || frame->Pressure < 2000)) {
+        pBuf += "Pressure=";
+        pBuf += frame->Pressure;
+        pBuf += ",";
+      }
+    }
+    // add rain
+    if (frame->HasRain) {
+      pBuf += "Rain=";
+      pBuf += frame->Rain;
+      pBuf += ",";
+    }
+    // add wind speed
+    if (frame->HasWindSpeed) {
+      pBuf += "WindSpeed=";
+      pBuf += frame->WindSpeed;
+      pBuf += ",";
+    }
+    // add wind direction
+    if (frame->HasWindDirection) {
+      pBuf += "WindDirection=";
+      pBuf += frame->WindDirection;
+      pBuf += ",";
+    }
+
+    // add gust
+    if (frame->HasWindGust) {
+      pBuf += "WindGust=";
+      pBuf += frame->WindGust;
+      pBuf += ",";
+    }
+    // add UV
+    if (frame->HasUV) {
+      pBuf += "UV=";
+      pBuf += frame->UV;
+      pBuf += ",";
+    }
+    // add strikesDistance
+    if (frame->HasstrikesDistance) {
+      pBuf += "strikesDistance=";
+      pBuf += frame->strikesDistance;
+      pBuf += ",";
+    }
+    // add strikesTotal
+    if (frame->HasstrikesTotal) {
+      pBuf += "strikesTotal=";
+      pBuf += frame->strikesTotal;
+      pBuf += ",";
+    }
+    // add Flags
+    if (frame->NewBatteryFlag) {
+      pBuf += "NewBatteryFlag=";
+      pBuf += frame->NewBatteryFlag;
+      pBuf += ",";
+    }
+
+    if (frame->ErrorFlag) {
+      pBuf += "ErrorFlag=";
+      pBuf += frame->ErrorFlag;
+      pBuf += ",";
+    }
+    if (frame->LowBatteryFlag) {
+      pBuf += "LowBatteryFlag=";
+      pBuf += frame->LowBatteryFlag;
+      pBuf += ",";
+    }
+
+  }
+   return pBuf;
+}
+

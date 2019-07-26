@@ -22,18 +22,25 @@ public:
     bool  HasWindDirection;
     bool  HasWindGust;
     bool  HasPressure;
+    bool  HasUV;
+    bool  HasstrikesTotal;
+    bool  HasstrikesDistance;
 
-    float Temperature;    // °C 
+    float Temperature;    // ï¿½C 
     byte  Humidity;       // %rH
     float Rain;           // mm
     float WindDirection;  // Degree
     float  WindSpeed;     // m/s
     float  WindGust;      // m/s
     int  Pressure;        // hPa
+    float UV;
+    int16_t strikesDistance ;
+    uint16_t strikesTotal ;
   };
 
 
 protected:
+  static String BuildKVDataString(struct Frame *frame, byte sensorType);
   static String BuildFhemDataString(struct Frame *frame, byte sensorType);
   static String AddWord(word value, bool hasValue);
   static String AddByte(byte value, bool hasValue);

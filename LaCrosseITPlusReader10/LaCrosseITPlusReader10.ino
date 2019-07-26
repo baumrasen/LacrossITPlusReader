@@ -10,7 +10,7 @@
 //            2014-03-14: I have this in SubVersion, so no need to do it here
 
 #define PROGNAME         "LaCrosseITPlusReader"
-#define PROGVERS         "10.1s" 
+#define PROGVERS         "10.1sJo" 
 
 #include "SPI.h"
 #include "RFM.h"
@@ -29,6 +29,9 @@
 #include <Wire.h>
 #include "InternalSensors.h"
 #include "CustomSensor.h"
+#include "WH24.h"
+#include "WH25.h"
+#include "W136.h"
 
 // --- Configuration ---------------------------------------------------------------------------------------------------
 #define RECEIVER_ENABLED       1                     // Set to 0 if you don't want to receive 
@@ -337,7 +340,7 @@ void HandleReceivedData(RFM *rfm) {
   if (ANALYZE_FRAMES) {
     ////WS1080::AnalyzeFrame(payload);
     ////TX22IT::AnalyzeFrame(payload);
-    LaCrosse::AnalyzeFrame(payload);
+    //LaCrosse::AnalyzeFrame(payload);
     ////LevelSenderLib::AnalyzeFrame(payload);
     ////EMT7110::AnalyzeFrame(payload);
     ////TX38IT::AnalyzeFrame(payload);
@@ -380,11 +383,26 @@ void HandleReceivedData(RFM *rfm) {
     else if (WS1080::IsValidDataRate(rfm->GetDataRate()) && WS1080::TryHandleData(payload)) {
       frameLength = WS1080::FRAME_LENGTH;
     }
-
-    // Try LevelSender
-    else if (LevelSenderLib::IsValidDataRate(rfm->GetDataRate()) && LevelSenderLib::TryHandleData(payload)) {
-      frameLength = LevelSenderLib::FRAME_LENGTH;
+    
+    // Try WH24
+   else if (WH24::IsValidDataRate(rfm->GetDataRate()) && WH24::TryHandleData(payload)) {
+      frameLength = WH24::FRAME_LENGTH;
     }
+
+    // Try WH25
+    else if (WH25::IsValidDataRate(rfm->GetDataRate()) && WH25::TryHandleData(payload)) {
+      frameLength = WH25::FRAME_LENGTH;
+    }
+
+     // Try W136
+    else if (W136::IsValidDataRate(rfm->GetDataRate()) && W136::TryHandleData(payload)) {
+     frameLength = W136::FRAME_LENGTH;
+    }
+    
+    // Try LevelSender
+//    else if (LevelSenderLib::IsValidDataRate(rfm->GetDataRate()) && LevelSenderLib::TryHandleData(payload)) {
+//      frameLength = LevelSenderLib::FRAME_LENGTH;
+//    }
 
     // Try EMT7110
     else if (EMT7110::IsValidDataRate(rfm->GetDataRate()) && EMT7110::TryHandleData(payload)) {
@@ -400,10 +418,11 @@ void HandleReceivedData(RFM *rfm) {
     else if (TX38IT::IsValidDataRate(rfm->GetDataRate()) && TX38IT::TryHandleData(payload)) {
       frameLength = TX38IT::FRAME_LENGTH;
     }
+
     // Try CustomSensor
-    else if (CustomSensor::IsValidDataRate(rfm->GetDataRate()) && CustomSensor::TryHandleData(payload)) {
-      frameLength = CustomSensor::GetFrameLength(payload);
-    }
+//    else if (CustomSensor::IsValidDataRate(rfm->GetDataRate()) && CustomSensor::TryHandleData(payload)) {
+//      frameLength = CustomSensor::GetFrameLength(payload);
+//    }
     else if (PASS_PAYLOAD == 2) {
       for (int i = 0; i < PAYLOADSIZE; i++) {
         Serial.print(payload[i], HEX);
