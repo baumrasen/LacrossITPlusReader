@@ -10,7 +10,7 @@
 //            2014-03-14: I have this in SubVersion, so no need to do it here
 
 #define PROGNAME         "LaCrosseITPlusReader"
-#define PROGVERS         "10.1p" 
+#define PROGVERS         "10.1q" 
 
 #include "SPI.h"
 #include "RFMxx.h"
@@ -20,10 +20,12 @@
 #include "EMT7110.h"
 #include "WT440XH.h"
 #include "TX38IT.h"
-#include "TX22IT.h"
 #include "JeeLink.h"
 #include "Help.h"
 #include "BMP180.h"
+#include "WSBase.h"
+#include "WS1080.h"
+#include "TX22IT.h"
 #include <Wire.h>
 #include "InternalSensors.h"
 #include "CustomSensor.h"
@@ -256,6 +258,23 @@ void HandleCommandS(byte *data, byte size) {
 
 // This function is for testing 
 void HandleCommandX(byte value) {
+  //// A8 C0 58 5E 00 00 00 86 0A D8
+
+  byte payload[10];
+  //// A8 C0 58 63 01 03 00 88 08 C6
+  //// ID : 8C, T = 8.8`C, relH = 99 % , Wvel = 0.3m / s, Wmax = 1.0m / s, Wdir = S, Rain = 40.8mm
+  ////payload[0] = 0xA8;
+  ////payload[1] = 0xC0;
+  ////payload[2] = 0x58;
+  ////payload[3] = 0x63;
+  ////payload[4] = 0x01;
+  ////payload[5] = 0x03;
+  ////payload[6] = 0x00;
+  ////payload[7] = 0x88;
+  ////payload[8] = 0x08;
+  ////payload[9] = 0xC6;
+
+  ////WS1080::TryHandleData(payload);
 
 }
 
@@ -317,13 +336,14 @@ void HandleReceivedData(RFMxx *rfm) {
   rfm->GetPayload(payload);
 
   if (ANALYZE_FRAMES) {
-    TX22IT::AnalyzeFrame(payload);
+    ////WS1080::AnalyzeFrame(payload);
+    ////TX22IT::AnalyzeFrame(payload);
     LaCrosse::AnalyzeFrame(payload);
-    LevelSenderLib::AnalyzeFrame(payload);
-    EMT7110::AnalyzeFrame(payload);
-    TX38IT::AnalyzeFrame(payload);
-    CustomSensor::AnalyzeFrame(payload);
-    Serial.println();
+    ////LevelSenderLib::AnalyzeFrame(payload);
+    ////EMT7110::AnalyzeFrame(payload);
+    ////TX38IT::AnalyzeFrame(payload);
+    ////CustomSensor::AnalyzeFrame(payload);
+    ////Serial.println();
   }
   else if (PASS_PAYLOAD == 1) {
     jeeLink.Blink(1);
@@ -347,14 +367,19 @@ void HandleReceivedData(RFMxx *rfm) {
 
     byte frameLength = 0;
 
+    // Try LaCrosse like TX29DTH
+    if (LaCrosse::IsValidDataRate(rfm->GetDataRate()) && LaCrosse::TryHandleData(payload)) {
+      frameLength = LaCrosse::FRAME_LENGTH;
+    }
+
     // Try TX22IT (WS 1600)
-    if (TX22IT::IsValidDataRate(rfm->GetDataRate()) && TX22IT::TryHandleData(payload)) {
+    else if (TX22IT::IsValidDataRate(rfm->GetDataRate()) && TX22IT::TryHandleData(payload)) {
       frameLength = TX22IT::GetFrameLength(payload);
     }
 
-    // Try LaCrosse like TX29DTH
-    else if (LaCrosse::IsValidDataRate(rfm->GetDataRate()) && LaCrosse::TryHandleData(payload)) {
-      frameLength = LaCrosse::FRAME_LENGTH;
+    // Try WS 1080
+    else if (WS1080::IsValidDataRate(rfm->GetDataRate()) && WS1080::TryHandleData(payload)) {
+      frameLength = WS1080::FRAME_LENGTH;
     }
 
     // Try LevelSender

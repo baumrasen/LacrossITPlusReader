@@ -321,10 +321,10 @@ RFMxx::RadioType RFMxx::GetRadioType() {
 String RFMxx::GetRadioName() {
   switch (GetRadioType()) {
   case RFMxx::RFM12B:
-    return String("RFM12B");
+    return String("RFM12");
     break;
   case RFMxx::RFM69CW:
-    return String("RFM69CW");
+    return String("RFM69");
     break;
   default:
     return String("None");
