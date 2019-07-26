@@ -10,7 +10,8 @@
 //            2014-03-14: I have this in SubVersion, so no need to do it here
 
 #define PROGNAME         "LaCrosseITPlusReader"
-#define PROGVERS         "10.1m"
+#define PROGVERS         "10.1n"
+////#define TRANSMITTER 
 
 #include "RFMxx.h"
 #include "SensorBase.h"
@@ -21,11 +22,14 @@
 #include "TX38IT.h"
 #include "TX22IT.h"
 #include "JeeLink.h"
-#include "Transmitter.h"
 #include "Help.h"
 #include "BMP180.h"
 #include <Wire.h>
 #include "InternalSensors.h"
+#ifdef TRANSMITTER
+#include "Transmitter.h"
+#endif // TRANSMITTER
+
 
 // --- Configuration ---------------------------------------------------------------------------------------------------
 #define RECEIVER_ENABLED       1                     // Set to 0 if you don't want to receive 
@@ -58,8 +62,9 @@ RFMxx rfm2(11, 12, 13, 8, 3);
 JeeLink jeeLink;
 InternalSensors internalSensors;
 
+#ifdef TRANSMITTER
 Transmitter transmitter(&rfm1);
-
+#endif
 
 static void HandleSerialPort(char c) {
   static unsigned long value;
@@ -148,17 +153,19 @@ static void HandleSerialPort(char c) {
       commandDataPointer = 0;
       break;
 
+    #ifdef TRANSMITTER
     case 'i':
-    commandData[commandDataPointer] = value;
-    HandleCommandI(commandData, ++commandDataPointer);
-    commandDataPointer = 0;
-    break;
+      commandData[commandDataPointer] = value;
+      HandleCommandI(commandData, ++commandDataPointer);
+      commandDataPointer = 0;
+      break;
 
     case 'c':
       commandData[commandDataPointer] = value;
       HandleCommandC(commandData, ++commandDataPointer);
       commandDataPointer = 0;
       break;
+    #endif
 
     case 'f':
       rfm1.SetFrequency(value);
@@ -213,6 +220,7 @@ void HandleCommandS(byte *data, byte size) {
   }
 }
 
+#ifdef TRANSMITTER
 void HandleCommandI(byte *values, byte size){
   // 14,43,20,0i  -> ID 14, Interval 4.3 Seconds, reset NewBatteryFlagafter 20 minutes, 17.241 kbps
   if (size == 4){
@@ -226,11 +234,7 @@ void HandleCommandI(byte *values, byte size){
   else if (size == 1 && values[0] == 0){
     transmitter.Enable(false);
   }
-
-  
 }
-
-
 void HandleCommandC(byte *values, byte size){
   // 2,1,9,44c    -> Temperatur  21,9°C and 44% humidity
   // 129,4,5,77c  -> Temperatur -14,5°C and 77% humidity
@@ -244,6 +248,7 @@ void HandleCommandC(byte *values, byte size){
     transmitter.SetValues(temperature, values[3]);
   }
 }
+#endif 
 
 // This function is for testing 
 void HandleCommandX(byte value) {
@@ -436,10 +441,12 @@ void loop(void) {
 
   // Periodically transmit
   // --------------------
+#ifdef TRANSMITTER
   if (transmitter.Transmit()) {
     jeeLink.Blink(2);
     rfm1.EnableReceiver(RECEIVER_ENABLED);
   }
+#endif
 
   // Periodically send own sensor data
   // ---------------------------------
@@ -485,7 +492,7 @@ void setup(void) {
   jeeLink.EnableLED(ENABLE_ACTIVITY_LED);
   lastToggleR1 = millis();
   
-  transmitter.Enable(false);
+  ////transmitter.Enable(false);
   
   rfm1.InitialzeLaCrosse();
   rfm1.SetFrequency(INITIAL_FREQ);
