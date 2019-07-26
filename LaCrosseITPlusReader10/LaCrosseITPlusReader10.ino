@@ -12,7 +12,7 @@
 //// http://forum.fhem.de/index.php/topic,14786.msg268544.html#msg268544
 
 #define PROGNAME         "LaCrosseITPlusReader"
-#define PROGVERS         "10.1h"
+#define PROGVERS         "10.1i"
 
 #include "RFMxx.h"
 #include "SensorBase.h"
@@ -21,6 +21,7 @@
 #include "EMT7110.h"
 #include "WT440XH.h"
 #include "TX38IT.h"
+#include "TX22IT.h"
 #include "JeeLink.h"
 #include "Transmitter.h"
 #include "Help.h"
@@ -31,11 +32,13 @@
 #define ENABLE_ACTIVITY_LED   1                     // set to 0 if the blue LED bothers
 #define USE_OLD_IDS           0                     // Set to 1 to use the old ID calcualtion
 // The following settings can also be set from FHEM
-bool    DEBUG               = 0;                    // set to 1 to see debug messages
+bool DEBUG                  = 0;                    // set to 1 to see debug messages
 unsigned long DATA_RATE     = 17241ul;              // use one of the possible data rates
 uint16_t TOGGLE_DATA_RATE   = 0;                    // 0=no toggle, else interval in seconds
 unsigned long INITIAL_FREQ  = 868300;               // Initial frequency in kHz (5 kHz steps, 860480 ... 879515) 
 bool RELAY                  = 0;                    // If 1 all received packets will be retransmitted  
+byte TOGGLE_MODE            = 3;                    // Bits 1: 17.241 kbps, 2 : 9.579 kbps, 4 : 8.842 kbps
+bool PASS_PAYLOAD           = 0;                    // If 1 the received payload ist transmitted on the serial port
 
 
 // --- Variables --------------------------------------------------------------
@@ -45,6 +48,7 @@ byte commandDataPointer = 0;
 RFMxx rfm(11, 12, 13, 10, 2);
 JeeLink jeeLink;
 Transmitter transmitter(&rfm);
+
 
 
 static void HandleSerialPort(char c) {
@@ -73,8 +77,24 @@ static void HandleSerialPort(char c) {
       break;
     case 'r':     
       // Data rate
-      DATA_RATE = value ? 9579ul : 17241ul;
+      switch (value) {
+        case 0:
+          DATA_RATE = 17241ul;
+          break;
+        case 1:
+          DATA_RATE = 9579ul;
+          break;
+        case 2:
+          DATA_RATE = 8842ul;
+          break;
+      }
       rfm.SetDataRate(DATA_RATE);
+      break;
+    case 'm':
+      TOGGLE_MODE = value;
+      break;
+    case 'p':
+      PASS_PAYLOAD = value;
       break;
     case 't':     
       // Toggle data rate
@@ -239,28 +259,6 @@ void loop(void) {
     HandleSerialPort(Serial.read());
   }
 
-  // Handle the data rate
-  // --------------------
-  if (TOGGLE_DATA_RATE > 0) {
-    // After about 50 days millis() will overflow to zero 
-    if (millis() < lastToggle) {
-      lastToggle = 0;
-    }
-
-    if (millis() > lastToggle + TOGGLE_DATA_RATE * 1000) {
-      if (DATA_RATE == 9579ul) {
-        DATA_RATE = 17241ul;
-      }
-      else {
-        DATA_RATE = 9579ul;
-      }
-
-      rfm.SetDataRate(DATA_RATE);
-      lastToggle = millis();
-
-    }
-  }
-
   // Priodically transmit
   // --------------------
   if (transmitter.Transmit()) {
@@ -280,10 +278,19 @@ void loop(void) {
       rfm.GetPayload(payload);
       
       if(ANALYZE_FRAMES) {
+        TX22IT::AnalyzeFrame(payload);
         LaCrosse::AnalyzeFrame(payload);
         LevelSenderLib::AnalyzeFrame(payload);
         EMT7110::AnalyzeFrame(payload);
         TX38IT::AnalyzeFrame(payload);
+        Serial.println();
+      }
+      else if (PASS_PAYLOAD) {
+        jeeLink.Blink(1);
+        for (int i = 0; i < PAYLOADSIZE; i++) {
+          Serial.print(payload[i], HEX);
+          Serial.print(" ");
+        }
         Serial.println();
       }
       else {
@@ -300,8 +307,13 @@ void loop(void) {
         
         byte frameLength = 0;
 
+        // Try TX22IT (WS 1600)
+        if (TX22IT::TryHandleData(payload)) {
+          frameLength = TX22IT::GetFrameLength(payload);
+        }
+        
         // Try LaCrosse like TX29DTH
-        if (LaCrosse::TryHandleData(payload)) {
+        else if (LaCrosse::TryHandleData(payload)) {
           frameLength = LaCrosse::FRAME_LENGTH;
         }
 
@@ -336,6 +348,49 @@ void loop(void) {
 
       }
       rfm.EnableReceiver(true);
+    }
+  }
+ 
+  // Handle the data rate
+  // --------------------
+  if (TOGGLE_DATA_RATE > 0) {
+    // After about 50 days millis() will overflow to zero 
+    if (millis() < lastToggle) {
+      lastToggle = 0;
+    }
+
+    if (millis() > lastToggle + TOGGLE_DATA_RATE * 1000) {
+      // Bits 1: 17.241 kbps, 2 : 9.579 kbps, 4 : 8.842 kbps
+
+      if (DATA_RATE == 8842ul) {
+        if (TOGGLE_MODE & 2) {
+          DATA_RATE = 9579ul;
+        }
+        else if (TOGGLE_MODE & 1) {
+          DATA_RATE = 17241ul;
+        }
+      }
+      else if (DATA_RATE == 9579ul) {
+        if (TOGGLE_MODE & 1) {
+          DATA_RATE = 17241ul;
+        }
+        else if (TOGGLE_MODE & 4) {
+          DATA_RATE = 8842ul;
+        }
+      }
+      else if (DATA_RATE == 17241ul) {
+        if (TOGGLE_MODE & 4) {
+          DATA_RATE = 8842ul;
+        }
+        else if (TOGGLE_MODE & 2) {
+          DATA_RATE = 9579ul;
+        }
+      }
+
+
+      rfm.SetDataRate(DATA_RATE);
+      lastToggle = millis();
+
     }
   }
  

@@ -56,6 +56,9 @@ void RFMxx::SetDataRate(unsigned long dataRate) {
     else if (m_dataRate == 9579) {
       bt = 0x23;
     }
+    else if (m_dataRate == 8842) {
+      bt = 0x26;
+    }
     else {
       bt = (byte)(344828UL / m_dataRate) - 1;
     }
