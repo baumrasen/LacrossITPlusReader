@@ -189,25 +189,6 @@ void RFMxx::InitialzeLaCrosse() {
   ClearFifo();
 }
 
-byte RFMxx::GetTemperature() {
-  byte result = 0;
-  if (IsRF69) {
-    byte receiverWasOn = ReadReg(REG_OPMODE) & 0x10;
-
-    EnableReceiver(false);
-
-    WriteReg(0x4E, 0x08);
-    while ((ReadReg(0x4E) & 0x04));
-    result = ~ReadReg(0x4F) - 90;
-
-    if (receiverWasOn) {
-      EnableReceiver(true);
-    }
-  }
-
-  return result;
-}
-
 
 #define clrb(pin) (*portOutputRegister(digitalPinToPort(pin)) &= ~digitalPinToBitMask(pin))
 #define setb(pin) (*portOutputRegister(digitalPinToPort(pin)) |= digitalPinToBitMask(pin))
@@ -296,7 +277,7 @@ bool RFMxx::IsConnected() {
   return m_radioType != RFMxx::None;
 }
 
-RFMxx::RFMxx(byte mosi, byte miso, byte sck, byte ss, byte irq) {
+RFMxx::RFMxx(byte mosi, byte miso, byte sck, byte ss, byte irq, bool isPrimary) {
   m_mosi = mosi;
   m_miso = miso;
   m_sck = sck;
@@ -333,20 +314,28 @@ RFMxx::RFMxx(byte mosi, byte miso, byte sck, byte ss, byte irq) {
 
   // Is there a RFM12 ?
   if (m_radioType == RFMxx::None) {
-    spi16(0x820C); // Osc. + LBD
-
-    spi16(0xC04F); // LBD=3.7V
-    for (int i = 0; i < 100; i++) {
-      asm("nop");
+    if (isPrimary) {
+      m_radioType = RFMxx::RFM12B;
     }
-    if ((spi16(0x0000) & 0x0400) == 0x0400) {
-      spi16(0xC040);  // LBD = 2.2V
-      for (int i = 0; i < 100; i++) {
+    else {
+      spi16(0x820C); // Osc. + LBD
+      for (int i = 0; i < 1000; i++) {
         asm("nop");
       }
 
-      if ((spi16(0x0000) & 0x0400) == 0) {
-        m_radioType = RFMxx::RFM12B;
+      spi16(0xC04F); // LBD=3.7V
+      for (int i = 0; i < 1000; i++) {
+        asm("nop");
+      }
+      if ((spi16(0x0000) & 0x0400) == 0x0400) {
+        spi16(0xC040);  // LBD = 2.2V
+        for (int i = 0; i < 1000; i++) {
+          asm("nop");
+        }
+
+        if ((spi16(0x0000) & 0x0400) == 0) {
+          m_radioType = RFMxx::RFM12B;
+        }
       }
     }
   }

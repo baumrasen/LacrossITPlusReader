@@ -10,8 +10,7 @@
 //            2014-03-14: I have this in SubVersion, so no need to do it here
 
 #define PROGNAME         "LaCrosseITPlusReader"
-#define PROGVERS         "10.1n"
-////#define TRANSMITTER 
+#define PROGVERS         "10.1o" 
 
 #include "RFMxx.h"
 #include "SensorBase.h"
@@ -26,10 +25,7 @@
 #include "BMP180.h"
 #include <Wire.h>
 #include "InternalSensors.h"
-#ifdef TRANSMITTER
-#include "Transmitter.h"
-#endif // TRANSMITTER
-
+#include "CustomSensor.h"
 
 // --- Configuration ---------------------------------------------------------------------------------------------------
 #define RECEIVER_ENABLED       1                     // Set to 0 if you don't want to receive 
@@ -56,15 +52,11 @@ unsigned long lastToggleR2 = 0;
 byte commandData[32];
 byte commandDataPointer = 0;
 RFMxx rfm1(11, 12, 13, 10, 2);
-RFMxx rfm2(11, 12, 13, 8, 3);
+RFMxx rfm2(11, 12, 13, 8, 3, false);
 
 
 JeeLink jeeLink;
 InternalSensors internalSensors;
-
-#ifdef TRANSMITTER
-Transmitter transmitter(&rfm1);
-#endif
 
 static void HandleSerialPort(char c) {
   static unsigned long value;
@@ -153,20 +145,6 @@ static void HandleSerialPort(char c) {
       commandDataPointer = 0;
       break;
 
-    #ifdef TRANSMITTER
-    case 'i':
-      commandData[commandDataPointer] = value;
-      HandleCommandI(commandData, ++commandDataPointer);
-      commandDataPointer = 0;
-      break;
-
-    case 'c':
-      commandData[commandDataPointer] = value;
-      HandleCommandC(commandData, ++commandDataPointer);
-      commandDataPointer = 0;
-      break;
-    #endif
-
     case 'f':
       rfm1.SetFrequency(value);
       break;
@@ -187,14 +165,18 @@ static void HandleSerialPort(char c) {
 
     default:
       HandleCommandV();
+      #ifndef NOHELP
       Help::Show();
+      #endif
       break;
     }
     value = 0;
   }
   else if (' ' < c && c < 'A') {
     HandleCommandV();
+    #ifndef NOHELP
     Help::Show();
+    #endif
   }
 }
 
@@ -208,50 +190,26 @@ void SetDebugMode(boolean mode) {
 }
 
 void HandleCommandS(byte *data, byte size) {
-  if (size == 4){
-    rfm1.EnableReceiver(false);
+  rfm1.EnableReceiver(false);
 
-    // Calculate the CRC
-    data[LaCrosse::FRAME_LENGTH - 1] = LaCrosse::CalculateCRC(data);
+  struct CustomSensor::Frame frame;
+  frame.ID = data[0];
+  frame.NbrOfDataBytes = size -1;
 
-    rfm1.SendArray(data, LaCrosse::FRAME_LENGTH);
-
-    rfm1.EnableReceiver(true);
+  for (int i = 0; i < frame.NbrOfDataBytes; i++) {
+    frame.Data[i] = data[i+1];
   }
+
+  CustomSensor::SendFrame(&frame, rfm1);
+
+
+  rfm1.EnableReceiver(true);
 }
 
-#ifdef TRANSMITTER
-void HandleCommandI(byte *values, byte size){
-  // 14,43,20,0i  -> ID 14, Interval 4.3 Seconds, reset NewBatteryFlagafter 20 minutes, 17.241 kbps
-  if (size == 4){
-    transmitter.SetParameters(values[0],
-                              values[1] * 100,
-                              true,
-                              values[2] * 60000 + millis(),
-                              values[3] == 0 ? 17241ul : 9579ul);
-    transmitter.Enable(true);
-  }
-  else if (size == 1 && values[0] == 0){
-    transmitter.Enable(false);
-  }
-}
-void HandleCommandC(byte *values, byte size){
-  // 2,1,9,44c    -> Temperatur  21,9°C and 44% humidity
-  // 129,4,5,77c  -> Temperatur -14,5°C and 77% humidity
-  // To set a negative temperature set bit 7 in the first byte (add 128)
-  if (size == 4){
-    float temperature = (values[0] & 0b0111111) * 10 + values[1] + values[2] * 0.1;
-    if (values[0] & 0b10000000) {
-      temperature *= -1;
-    }
-    
-    transmitter.SetValues(temperature, values[3]);
-  }
-}
-#endif 
 
 // This function is for testing 
 void HandleCommandX(byte value) {
+
 }
 
 void HandleCommandV() {
@@ -317,6 +275,7 @@ void HandleReceivedData(RFMxx *rfm) {
     LevelSenderLib::AnalyzeFrame(payload);
     EMT7110::AnalyzeFrame(payload);
     TX38IT::AnalyzeFrame(payload);
+    CustomSensor::AnalyzeFrame(payload);
     Serial.println();
   }
   else if (PASS_PAYLOAD == 1) {
@@ -369,6 +328,10 @@ void HandleReceivedData(RFMxx *rfm) {
     // Try TX38IT
     else if (TX38IT::IsValidDataRate(rfm->GetDataRate()) && TX38IT::TryHandleData(payload)) {
       frameLength = TX38IT::FRAME_LENGTH;
+    }
+    // Try CustomSensor
+    else if (CustomSensor::IsValidDataRate(rfm->GetDataRate()) && CustomSensor::TryHandleData(payload)) {
+      frameLength = CustomSensor::GetFrameLength(payload);
     }
     else if (PASS_PAYLOAD == 2) {
       for (int i = 0; i < PAYLOADSIZE; i++) {
@@ -439,15 +402,6 @@ void loop(void) {
     HandleSerialPort(Serial.read());
   }
 
-  // Periodically transmit
-  // --------------------
-#ifdef TRANSMITTER
-  if (transmitter.Transmit()) {
-    jeeLink.Blink(2);
-    rfm1.EnableReceiver(RECEIVER_ENABLED);
-  }
-#endif
-
   // Periodically send own sensor data
   // ---------------------------------
   internalSensors.TryHandleData();
@@ -491,8 +445,6 @@ void setup(void) {
 
   jeeLink.EnableLED(ENABLE_ACTIVITY_LED);
   lastToggleR1 = millis();
-  
-  ////transmitter.Enable(false);
   
   rfm1.InitialzeLaCrosse();
   rfm1.SetFrequency(INITIAL_FREQ);

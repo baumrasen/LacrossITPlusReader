@@ -15,7 +15,7 @@ public:
     RFM69CW = 2
   };
 
-  RFMxx(byte mosi, byte miso, byte sck, byte ss, byte irq);
+  RFMxx(byte mosi, byte miso, byte sck, byte ss, byte irq, bool isPrimary=true);
 
   bool IsConnected();
   bool PayloadIsReady();
@@ -31,7 +31,6 @@ public:
   static byte CalculateCRC(byte data[], int len);
   void PowerDown();
   void SetDebugMode(boolean mode);
-  byte GetTemperature();
   RadioType GetRadioType();
   String GetRadioName();
   void Receive();
