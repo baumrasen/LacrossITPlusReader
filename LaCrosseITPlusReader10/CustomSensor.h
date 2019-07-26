@@ -25,10 +25,11 @@ public:
   static bool TryHandleData(byte *data);
   static String GetFhemDataString(byte *data);
   static bool IsValidDataRate(unsigned long dataRate);
-  static void SendFrame(struct CustomSensor::Frame *frame, RFMxx rfm);
+  static void SendFrame(struct CustomSensor::Frame *frame, RFMxx *rfm, unsigned long dataRate);
 
 
 protected:
+  unsigned long m_dataRate;
   static String BuildFhemDataString(struct CustomSensor::Frame *frame);
 
 };

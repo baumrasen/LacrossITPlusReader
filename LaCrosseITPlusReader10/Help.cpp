@@ -7,6 +7,7 @@ const char helpText[] PROGMEM =
 "\n"
 "Available commands:" "\n"
 "  <n>a             - activity LED (0=off, 1=on)" "\n"
+"  <n>c             - TX data rate (0: 17.241 kbps, 1: 9.579 kbps, 2: 8.842 kbps)" "\n"
 "  <n>d             - DEBUG mode (0=suppress TX and bad packets)" "\n"
 "  <n>h             - height above sea level (m)" "\n"
 "  <nnnnnn>f        - frequency (5 kHz steps e.g. 868315)" "\n"

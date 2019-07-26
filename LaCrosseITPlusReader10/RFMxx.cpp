@@ -1,5 +1,11 @@
 #include "RFMxx.h"
 
+// Usage with ESP8266: to use this lib with ESP8266, we need a: #define ESP8266 
+// This can be done in some IDEs like visual micro on the project level.
+// In Arduino IDE it's not possible.
+// In this case, uncomment the following line:
+//// #define ESP8266
+
 void RFMxx::Receive() {
   if (IsRF69) {
     if (ReadReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY) {
@@ -45,14 +51,15 @@ void RFMxx::SetDataRate(unsigned long dataRate) {
 
   if (IsRF69) {
     word r = ((32000000UL + (m_dataRate / 2)) / m_dataRate);
-    WriteReg(0x03, r >> 8); 
-    WriteReg(0x04, r & 0xFF); 
+    WriteReg(0x03, r >> 8);
+    WriteReg(0x04, r & 0xFF);
   }
   else {
     byte bt = (byte)(round(344828.0 / m_dataRate)) - 1;
     RFMxx::spi16(0xC600 | bt);
   }
 }
+
 
 void RFMxx::SetFrequency(unsigned long kHz) {
   m_frequency = kHz;
@@ -66,7 +73,7 @@ void RFMxx::SetFrequency(unsigned long kHz) {
   else {
     RFMxx::spi16(40960 + (m_frequency - 860000) / 5);
   }
-  
+
 }
 
 void RFMxx::EnableReceiver(bool enable){
@@ -75,9 +82,9 @@ void RFMxx::EnableReceiver(bool enable){
       WriteReg(REG_OPMODE, (ReadReg(REG_OPMODE) & 0xE3) | RF_OPMODE_RECEIVER);
     }
     else {
-      spi16(0x82C8); 
-      spi16(0xCA81); 
-      spi16(0xCA83); 
+      spi16(0x82C8);
+      spi16(0xCA81);
+      spi16(0xCA83);
     }
   }
   else {
@@ -119,7 +126,7 @@ bool RFMxx::PayloadIsReady() {
 }
 
 
-bool RFMxx::ClearFifo() {
+void RFMxx::ClearFifo() {
   if (IsRF69) {
     WriteReg(REG_IRQFLAGS2, 16);
   }
@@ -169,18 +176,18 @@ void RFMxx::InitialzeLaCrosse() {
     /* 0x6F */ WriteReg(REG_TESTDAGC, RF_DAGC_IMPROVED_LOWBETA0);
   }
   else {
-    spi16(0x8208);              // RX/TX off
-    spi16(0x80E8);              // 80e8 CONFIGURATION EL,EF,868 band,12.5pF  (iT+ 915  80f8)
-    spi16(0xC26a);              // DATA FILTER
-    spi16(0xCA12);              // FIFO AND RESET  8,SYNC,!ff,DR 
-    spi16(0xCEd4);              // SYNCHRON PATTERN  0x2dd4 
-    spi16(0xC481);              // AFC during VDI HIGH
-    spi16(0x94a0);              // RECEIVER CONTROL VDI Medium 134khz LNA max DRRSI 103 dbm  
-    spi16(0xCC77);              // 
-    spi16(0x9850);              // Deviation 90 kHz 
-    spi16(0xE000);              // 
-    spi16(0xC800);              // 
-    spi16(0xC040);              // 1.66MHz,2.2V 
+    spi16(0x8208);   // RX/TX off
+    spi16(0x80E8);   // 80e8 CONFIGURATION EL,EF,868 band,12.5pF  (iT+ 915  80f8)
+    spi16(0xC26a);   // DATA FILTER
+    spi16(0xCA12);   // FIFO AND RESET  8,SYNC,!ff,DR 
+    spi16(0xCEd4);   // SYNCHRON PATTERN  0x2dd4 
+    spi16(0xC481);   // AFC "Keep the F-Offset only during VDI=high" 
+    spi16(0x94a0);   // RECEIVER CONTROL VDI Medium 134khz LNA max DRRSI 103 dbm  
+    spi16(0xCC77);   // 
+    spi16(0x9850);   // 0x9850: Shift positive,  Deviation 90 kHz 
+    spi16(0xE000);   // 
+    spi16(0xC800);   // 
+    spi16(0xC040);   // 1.66MHz,2.2V 
   }
 
   SetFrequency(m_frequency);
@@ -190,54 +197,106 @@ void RFMxx::InitialzeLaCrosse() {
 }
 
 
+void RFMxx::SetHFParameter(byte address, byte value) {
+  WriteReg(address, value);
+  Serial.print("WriteReg:");
+  Serial.print(address);
+  Serial.print("->");
+  Serial.print(value);
+}
+
+void RFMxx::SetHFParameter(unsigned short value) {
+  spi16(value);
+  Serial.print("spi16:");
+  Serial.print(value);
+}
+
+
+#ifndef ESP8266
 #define clrb(pin) (*portOutputRegister(digitalPinToPort(pin)) &= ~digitalPinToBitMask(pin))
 #define setb(pin) (*portOutputRegister(digitalPinToPort(pin)) |= digitalPinToBitMask(pin))
+#endif
+
 byte RFMxx::spi8(byte value) {
-  volatile byte *misoPort = portInputRegister(digitalPinToPort(m_miso));
-  byte misoBit = digitalPinToBitMask(m_miso);
   for (byte i = 8; i; i--) {
-    clrb(m_sck);
+    #ifndef ESP8266
+      clrb(m_sck);
+    #else
+      digitalWrite(m_sck, LOW);
+    #endif
     if (value & 0x80) {
-      setb(m_mosi);
+    #ifndef ESP8266
+        setb(m_mosi);
+      #else
+        digitalWrite(m_mosi, HIGH);
+      #endif
     }
     else {
-      clrb(m_mosi);
+      #ifndef ESP8266
+        clrb(m_mosi);
+      #else
+        digitalWrite(m_mosi, LOW);
+      #endif
     }
     value <<= 1;
-    setb(m_sck);
-    if (*misoPort & misoBit) {
+    #ifndef ESP8266
+      setb(m_sck);
+    #else
+      digitalWrite(m_sck, HIGH);
+    #endif
+    if (digitalRead(m_miso)) {
       value |= 1;
     }
   }
-  clrb(m_sck);
+  #ifndef ESP8266
+    clrb(m_sck);
+  #else
+    digitalWrite(m_sck, LOW);
+  #endif
 
   return value;
 }
+
 
 unsigned short RFMxx::spi16(unsigned short value) {
-  volatile byte *misoPort = portInputRegister(digitalPinToPort(m_miso));
-  byte misoBit = digitalPinToBitMask(m_miso);
+  digitalWrite(m_ss, LOW);
 
-  clrb(m_ss);
   for (byte i = 0; i < 16; i++) {
     if (value & 32768) {
-      setb(m_mosi);
+    #ifndef ESP8266
+        setb(m_mosi);
+      #else
+        digitalWrite(m_mosi, HIGH);
+      #endif
     }
     else {
-      clrb(m_mosi);
+      #ifndef ESP8266
+        clrb(m_mosi);
+      #else
+        digitalWrite(m_mosi, LOW);
+      #endif
     }
     value <<= 1;
-    if (*misoPort & misoBit) {
+    if (digitalRead(m_miso)) {
       value |= 1;
     }
-    setb(m_sck);
-    asm("nop");
-    asm("nop");
-    clrb(m_sck);
+    #ifndef ESP8266
+      setb(m_sck);
+    #else
+      digitalWrite(m_sck, HIGH);
+    #endif
+    delayMicroseconds(1);
+    #ifndef ESP8266
+      clrb(m_sck);
+    #else
+      digitalWrite(m_sck, LOW);
+    #endif
   }
-  setb(m_ss);
+
+  digitalWrite(m_ss, HIGH);
   return value;
 }
+
 
 byte RFMxx::ReadReg(byte addr) {
   digitalWrite(m_ss, LOW);
@@ -252,7 +311,6 @@ void RFMxx::WriteReg(byte addr, byte value) {
   digitalWrite(m_ss, LOW);
   spi8(addr | 0x80);
   spi8(value);
-
   digitalWrite(m_ss, HIGH);
 }
 
@@ -262,14 +320,14 @@ RFMxx::RadioType RFMxx::GetRadioType() {
 
 String RFMxx::GetRadioName() {
   switch (GetRadioType()) {
-    case RFMxx::RFM12B:
-      return String("RFM12B");
-      break;
-    case RFMxx::RFM69CW:
-      return String("RFM69CW");
-      break;
-    default:
-      return String("None");
+  case RFMxx::RFM12B:
+    return String("RFM12B");
+    break;
+  case RFMxx::RFM69CW:
+    return String("RFM69CW");
+    break;
+  default:
+    return String("None");
   }
 }
 
@@ -296,10 +354,9 @@ RFMxx::RFMxx(byte mosi, byte miso, byte sck, byte ss, byte irq, bool isPrimary) 
   pinMode(m_miso, INPUT);
   pinMode(m_sck, OUTPUT);
   pinMode(m_ss, OUTPUT);
-  pinMode(m_irq, INPUT);
 
   digitalWrite(m_ss, HIGH);
-  
+
   // No radio found until now
   m_radioType = RFMxx::None;
 
@@ -359,7 +416,7 @@ void RFMxx::SendByte(byte data) {
 
 
 void RFMxx::SendArray(byte *data, byte length) {
-if (IsRF69) {
+  if (IsRF69) {
     WriteReg(REG_PACKETCONFIG2, (ReadReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
 
     EnableReceiver(false);
@@ -381,7 +438,7 @@ if (IsRF69) {
     // Wait until transmission is finished
     unsigned long txStart = millis();
     while (!(ReadReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT) && millis() - txStart < 500);
-    
+
     EnableTransmitter(false);
   }
   else {
@@ -414,5 +471,4 @@ if (IsRF69) {
     Serial.println();
   }
 }
-
 

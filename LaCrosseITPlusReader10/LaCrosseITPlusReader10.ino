@@ -10,8 +10,9 @@
 //            2014-03-14: I have this in SubVersion, so no need to do it here
 
 #define PROGNAME         "LaCrosseITPlusReader"
-#define PROGVERS         "10.1o" 
+#define PROGVERS         "10.1p" 
 
+#include "SPI.h"
 #include "RFMxx.h"
 #include "SensorBase.h"
 #include "LaCrosse.h"
@@ -33,17 +34,23 @@
 
 // The following settings can also be set from FHEM
 #define ENABLE_ACTIVITY_LED    1         // <n>a     set to 0 if the blue LED bothers
+unsigned long DATA_RATE_S1   = 17241ul;  // <n>c     use one of the possible data rates (for transmit on RFM #1)
 bool DEBUG                   = 0;        // <n>d     set to 1 to see debug messages
-bool ANALYZE_FRAMES          = 0;        // <n>z     set to 1 to display analyzed frame data instead of the normal data
-unsigned long DATA_RATE_R1   = 17241ul;  // <n>r     use one of the possible data rates (for RFM #1)
-unsigned long DATA_RATE_R2   = 9579ul;   // <n>R     use one of the possible data rates (for RFM #2)
-uint16_t TOGGLE_INTERVAL_R1  = 0;        // <n>t     0=no toggle, else interval in seconds (for RFM #1)
-uint16_t TOGGLE_INTERVAL_R2  = 0;        // <n>T     0=no toggle, else interval in seconds (for RFM #2)
+unsigned long INITIAL_FREQ   = 868300;   // <n>f     initial frequency in kHz (5 kHz steps, 860480 ... 879515) 
+int ALTITUDE_ABOVE_SEA_LEVEL = 0;        // <n>h     altituide above sea level
 byte TOGGLE_MODE_R1          = 3;        // <n>m     bits 1: 17.241 kbps, 2 : 9.579 kbps, 4 : 8.842 kbps (for RFM #1)
 byte TOGGLE_MODE_R2          = 3;        // <n>M     bits 1: 17.241 kbps, 2 : 9.579 kbps, 4 : 8.842 kbps (for RFM #2)
-unsigned long INITIAL_FREQ   = 868300;   // <n>f     initial frequency in kHz (5 kHz steps, 860480 ... 879515) 
-bool RELAY                   = 0;        // <n>r     if 1 all received packets will be retransmitted  
+                                         // <n>o     set HF-parameter e.g. 50305o for RFM12 or 1,4o for RFM69
 byte PASS_PAYLOAD            = 0;        // <n>p     transmitted the payload on the serial port 1: all, 2: only undecoded data
+unsigned long DATA_RATE_R1   = 17241ul;  // <n>r     use one of the possible data rates (for RFM #1)
+unsigned long DATA_RATE_R2   = 9579ul;   // <n>R     use one of the possible data rates (for RFM #2)
+                                         // <id,..>s send the bytes to the address id
+uint16_t TOGGLE_INTERVAL_R1  = 0;        // <n>t     0=no toggle, else interval in seconds (for RFM #1)
+uint16_t TOGGLE_INTERVAL_R2  = 0;        // <n>T     0=no toggle, else interval in seconds (for RFM #2)
+                                         // v        show version
+                                         // x        test command 
+bool RELAY                   = 0;        // <n>y     if 1 all received packets will be retransmitted  
+bool ANALYZE_FRAMES          = 0;        // <n>z     set to 1 to display analyzed frame data instead of the normal data
 
 
 // --- Variables -------------------------------------------------------------------------------------------------------
@@ -51,12 +58,31 @@ unsigned long lastToggleR1 = 0;
 unsigned long lastToggleR2 = 0;
 byte commandData[32];
 byte commandDataPointer = 0;
-RFMxx rfm1(11, 12, 13, 10, 2);
+RFMxx rfm1(11, 12, 13, 10, 2, true);
 RFMxx rfm2(11, 12, 13, 8, 3, false);
 
 
 JeeLink jeeLink;
 InternalSensors internalSensors;
+
+static unsigned long ConvertDataRate(unsigned long value) {
+ unsigned long result = 0;
+  switch (value) {
+    case 0:
+      result = 17241ul;
+      break;
+    case 1:
+      result = 9579ul;
+      break;
+    case 2:
+      result = 8842ul;
+      break;
+    default:
+      result = value;
+      break;
+  }
+  return result;
+}
 
 static void HandleSerialPort(char c) {
   static unsigned long value;
@@ -90,21 +116,7 @@ static void HandleSerialPort(char c) {
     case 'r':
     case 'R':
       // Data rate
-      
-      switch (value) {
-      case 0:
-        dataRate = 17241ul;
-        break;
-      case 1:
-        dataRate = 9579ul;
-        break;
-      case 2:
-        dataRate = 8842ul;
-        break;
-      default:
-        dataRate = value;
-        break;
-      }
+      dataRate = ConvertDataRate(value);
       if (c == 'r') {
         DATA_RATE_R1 = dataRate;
         rfm1.SetDataRate(DATA_RATE_R1);
@@ -115,6 +127,11 @@ static void HandleSerialPort(char c) {
           rfm2.SetDataRate(DATA_RATE_R2);
         }
       }
+      break;
+    case 'c':
+      // TX Data rate
+      dataRate = ConvertDataRate(value);
+      DATA_RATE_S1 = dataRate;
       break;
     case 'm':
       TOGGLE_MODE_R1 = value;
@@ -138,10 +155,18 @@ static void HandleSerialPort(char c) {
       HandleCommandV();
       break;
 
-      case 's':
+    case 's':
       // Send
       commandData[commandDataPointer] = value;
       HandleCommandS(commandData, ++commandDataPointer);
+      commandDataPointer = 0;
+      break;
+
+    case 'o':
+    case 'O':
+      // Set HF parameter
+      commandData[commandDataPointer] = value;
+      HandleCommandO(c == 'O' ? 2 : 1, value, commandData, ++commandDataPointer);
       commandDataPointer = 0;
       break;
 
@@ -189,6 +214,28 @@ void SetDebugMode(boolean mode) {
 
 }
 
+void HandleCommandO(byte rfmNbr, unsigned long value, byte *data, byte size) {
+  // 50305o (is 0xC481) for RFM12 or 1,4o for RFM69
+  if (size == 1 && rfm1.GetRadioType() == RFMxx::RFM12B) {
+    if (rfmNbr == 1) {
+      rfm1.SetHFParameter(value);
+    }
+    else if (rfmNbr == 2) {
+      rfm2.SetHFParameter(value);
+    }
+  }
+  else if (size == 2 && rfm1.GetRadioType() == RFMxx::RFM69CW) {
+    if (rfmNbr == 1) {
+      rfm1.SetHFParameter(data[0], data[1]);
+    }
+    else if (rfmNbr == 2) {
+      rfm2.SetHFParameter(data[0], data[1]);
+    }
+  }
+
+
+}
+
 void HandleCommandS(byte *data, byte size) {
   rfm1.EnableReceiver(false);
 
@@ -200,7 +247,7 @@ void HandleCommandS(byte *data, byte size) {
     frame.Data[i] = data[i+1];
   }
 
-  CustomSensor::SendFrame(&frame, rfm1);
+  CustomSensor::SendFrame(&frame, &rfm1, DATA_RATE_S1);
 
 
   rfm1.EnableReceiver(true);
@@ -442,6 +489,7 @@ void setup(void) {
   LaCrosse::USE_OLD_ID_CALCULATION = USE_OLD_IDS;
   
   internalSensors.TryInitializeBMP180();
+  internalSensors.SetAltitudeAboveSeaLevel(ALTITUDE_ABOVE_SEA_LEVEL);
 
   jeeLink.EnableLED(ENABLE_ACTIVITY_LED);
   lastToggleR1 = millis();
@@ -464,6 +512,7 @@ void setup(void) {
   }
 
   // FHEM needs this information
+  delay(1000);
   HandleCommandV();
 
 }

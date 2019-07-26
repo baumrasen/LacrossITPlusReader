@@ -75,16 +75,16 @@ String CustomSensor::BuildFhemDataString(struct CustomSensor::Frame *frame) {
 }
 
 // ----------------------------------------------------------------
-void CustomSensor::SendFrame(struct CustomSensor::Frame *frame, RFMxx rfm) {
+void CustomSensor::SendFrame(struct CustomSensor::Frame *frame, RFMxx *rfm, unsigned long dataRate) {
   byte payload[CS_PL_BUFFER_SIZE];
   EncodeFrame(frame, payload);
 
-  rfm.EnableReceiver(false);
-  unsigned long currentDataRate = rfm.GetDataRate();
-  rfm.SetDataRate(17241);
-  rfm.SendArray(payload, CustomSensor::GetFrameLength(payload));
-  rfm.SetDataRate(currentDataRate);
-  rfm.EnableReceiver(true);
+  rfm->EnableReceiver(false);
+  unsigned long currentDataRate = rfm->GetDataRate();
+  rfm->SetDataRate(dataRate);
+  rfm->SendArray(payload, CustomSensor::GetFrameLength(payload));
+  rfm->SetDataRate(currentDataRate);
+  rfm->EnableReceiver(true);
 }
 
 // ----------------------------------------------------------------
@@ -181,5 +181,5 @@ void CustomSensor::EncodeFrame(struct Frame *frame, byte bytes[CS_PL_BUFFER_SIZE
 
 // ----------------------------------------------------------------
 bool CustomSensor::IsValidDataRate(unsigned long dataRate) {
-  return dataRate == 17241ul;
+  return true;
 }

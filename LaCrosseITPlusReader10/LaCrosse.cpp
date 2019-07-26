@@ -201,7 +201,7 @@ void LaCrosse::AnalyzeFrame(byte *data) {
     // Show the raw data bytes
     Serial.print("LaCrosse [");
     for (int i = 0; i < FRAME_LENGTH; i++) {
-      Serial.print(data[i], DEC);
+      Serial.print(data[i], HEX);
       Serial.print(" ");
     }
     Serial.print("]");

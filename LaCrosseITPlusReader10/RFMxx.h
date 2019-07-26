@@ -15,7 +15,7 @@ public:
     RFM69CW = 2
   };
 
-  RFMxx(byte mosi, byte miso, byte sck, byte ss, byte irq, bool isPrimary=true);
+  RFMxx(byte mosi, byte miso, byte sck, byte ss, byte irq, bool isPrimary = true);
 
   bool IsConnected();
   bool PayloadIsReady();
@@ -31,9 +31,13 @@ public:
   static byte CalculateCRC(byte data[], int len);
   void PowerDown();
   void SetDebugMode(boolean mode);
+  byte GetTemperature();
   RadioType GetRadioType();
   String GetRadioName();
   void Receive();
+  void SetHFParameter(byte address, byte value);
+  void SetHFParameter(unsigned short value);
+
 
 private:
   RadioType m_radioType;
@@ -50,8 +54,9 @@ private:
   byte ReadReg(byte addr);
   void WriteReg(byte addr, byte value);
   byte GetByteFromFifo();
-  bool ClearFifo();
+  void ClearFifo();
   void SendByte(byte data);
+  void SetPin(byte port, bool highLow);
 
 };
 

@@ -46,6 +46,17 @@ void EMT7110::DecodeFrame(byte *data, struct Frame *frame) {
     frame->IsValid = CrcIsValid(data);
   }
 
+  // [25 6A 54 AE 2A AA AA AA AA AA AA 49]
+  // There is a user who has an EMT7110 that sometimes (every 30 seconds) sends these strange packets.
+  // CRS is OK, means the EMT really sends this.
+  // Until I get an idea what the EMT wants to tell us, I filter them.
+  // At least the current AA AA would be 43,69 Ampere what simply can't be true.
+  // Until now I am really sure that it is no "low batt" 
+  if (data[6] == 0xAA && data[7] == 0xAA) {
+    frame->IsValid = false;
+  }
+
+
 }
 
 
