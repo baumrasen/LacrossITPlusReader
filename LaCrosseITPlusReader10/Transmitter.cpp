@@ -1,10 +1,10 @@
 #include "Transmitter.h"
 #include "LaCrosse.h"
 
-Transmitter::Transmitter(RFM12 *rfm) {
+Transmitter::Transmitter(RFMxx *rfm) {
   m_rfm = rfm;
   m_enabled = false;
-  m_dataRate = RFM12::DataRate17241;
+  m_dataRate = 17241ul;
   m_id = 0;
   m_humidity = 0;
   m_temperature = 0.0;
@@ -40,7 +40,7 @@ bool Transmitter::Transmit() {
     frame.Humidity = m_humidity;
 
     // Set the data rate and send it
-    RFM12::DataRates currentDataRate = m_rfm->GetDataRate();
+    unsigned long currentDataRate = m_rfm->GetDataRate();
     m_rfm->SetDataRate(m_dataRate);
     byte bytes[LaCrosse::FRAME_LENGTH];
     LaCrosse::EncodeFrame(&frame, bytes);
@@ -55,7 +55,7 @@ bool Transmitter::Transmit() {
   return result;
 }
 
-void Transmitter::SetParameters(byte id, word interval, bool newBatteryFlag, unsigned long newBatteryFlagResetTime, RFM12::DataRates dataRate) {
+void Transmitter::SetParameters(byte id, word interval, bool newBatteryFlag, unsigned long newBatteryFlagResetTime, unsigned long dataRate) {
   m_id = id;
   m_interval = interval;
   m_newBatteryFlag = newBatteryFlag;

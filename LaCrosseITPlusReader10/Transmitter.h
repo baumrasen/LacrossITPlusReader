@@ -2,14 +2,14 @@
 #define _TRANSMITTER_h
 
 #include "Arduino.h"
-#include "RFM12.h"
+#include "RFMxx.h"
 
 
 class Transmitter {
  private:
-   RFM12 *m_rfm;
+   RFMxx *m_rfm;
    bool m_enabled;
-   RFM12::DataRates m_dataRate;
+   unsigned long m_dataRate;
    byte m_id;
    word m_interval;
    unsigned long m_newBatteryFlagResetTime;
@@ -20,10 +20,10 @@ class Transmitter {
 
 
  public:
-   Transmitter(RFM12 *rfm);
+   Transmitter(RFMxx *rfm);
    void Enable(bool enabled);
    bool Transmit();
-   void SetParameters(byte id, word interval, bool newBatteryFlag, unsigned long newBatteryFlagResetTime, RFM12::DataRates dataRate);
+   void SetParameters(byte id, word interval, bool newBatteryFlag, unsigned long newBatteryFlagResetTime, unsigned long dataRate);
    void SetValues(float temperature, byte humidity);
 };
 
