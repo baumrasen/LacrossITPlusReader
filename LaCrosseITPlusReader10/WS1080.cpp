@@ -38,7 +38,6 @@ void WS1080::DecodeFrame(byte *bytes, struct Frame *frame) {
   frame->CRC = bytes[WS1080::FRAME_LENGTH - 1];
   if (frame->CRC != CalculateCRC(bytes)) {
     frame->IsValid = false;
-    Serial.println(frame->CRC);
   }
 
   frame->Header = bytes[0] >> 4;
