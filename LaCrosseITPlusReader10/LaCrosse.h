@@ -24,14 +24,14 @@ public:
   static byte CalculateCRC(byte data[]);
   static void EncodeFrame(struct LaCrosse::Frame *frame, byte bytes[5]);
   static void DecodeFrame(byte *bytes, struct LaCrosse::Frame *frame);
-  static void AnalyzeFrame(byte *data);
+  static String AnalyzeFrame(byte *data);
   static bool TryHandleData(byte *data);
   static String GetFhemDataString(byte *data);
   static bool IsValidDataRate(unsigned long dataRate);
-  
+  static String BuildFhemDataString(struct LaCrosse::Frame *frame);
 
 protected:
-  static String BuildFhemDataString(struct LaCrosse::Frame *frame);
+  
 
 };
 

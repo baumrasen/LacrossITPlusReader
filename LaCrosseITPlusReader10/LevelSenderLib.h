@@ -15,11 +15,11 @@ public:
     byte  CRC;
     bool  IsValid;
   };
-  static byte CalculateCRC(byte *data);
+  static byte CalculateCRC(byte data[]);
   static const byte FRAME_LENGTH = 6;
   static void EncodeFrame(struct Frame *frame, byte *bytes);
   static void DecodeFrame(byte *data, struct Frame *frame);
-  static void AnalyzeFrame(byte *data);
+  static String AnalyzeFrame(byte *data);
   static bool TryHandleData(byte *data);
   static String GetFhemDataString(byte *data);
   static bool IsValidDataRate(unsigned long dataRate);

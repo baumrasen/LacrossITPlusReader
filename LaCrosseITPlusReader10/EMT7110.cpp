@@ -10,7 +10,7 @@
 // Byte  4 Bit 7      Pairing flag
 // Byte  4 Bit 0..5   Power 0.5 W steps
 // Byte  5            Power 0.5 W steps
-// Byte  6 + 7 	      Current (mA),
+// Byte  6 + 7 	      Current (mA) (MSB first),
 // Byte  8 	          Voltage (0.5 V steps - 128 V)
 // Byte  9 Bit 6      ???
 // Byte  9 Bit 7      ???
@@ -60,73 +60,65 @@ void EMT7110::DecodeFrame(byte *data, struct Frame *frame) {
 }
 
 
-void EMT7110::AnalyzeFrame(byte *data) {
+String EMT7110::AnalyzeFrame(byte *data) {
+  String result;
   struct Frame frame;
   DecodeFrame(data, &frame);
 
-  // MilliSeconds
-  static unsigned long lastMillis;
-  unsigned long now = millis();
-  char div[16];
-  sprintf(div, "%06d ", now - lastMillis);
-  lastMillis = millis();
-  Serial.print(div);
-
   // Show the raw data bytes
-  Serial.print("EMT7110 [");
+  result += "EMT7110 [";
   for (int i = 0; i < FRAME_LENGTH; i++) {
-    Serial.print(data[i], HEX);
-    Serial.print(" ");
+    result += String(data[i], HEX);
+    result += " ";
   }
-  Serial.print("]");
+  result += "]";
 
   // Check CRC
   if (!frame.IsValid) {
-    Serial.print(" CRC:WRONG");
+    result += " CRC:WRONG";
   }
   else {
-    Serial.print(" CRC:OK");
+    result += " CRC:OK";
   }
   // Start
-  Serial.print(" S:");
-  Serial.print(frame.Header1, HEX);
-  Serial.print(" ");
-  Serial.print(frame.Header2, HEX);
+  result += " S:";
+  result += String(frame.Header1, HEX);
+  result += " ";
+  result += String(frame.Header2, HEX);
 
   // ID
-  Serial.print(" ID:");
-  Serial.print(frame.ID, HEX);
+  result += " ID:";
+  result += String(frame.ID, HEX);
 
-  // Voltage
-  Serial.print(" V:");
-  Serial.print(frame.Voltage);
+  // Voltag
+  result += " V:";
+  result += frame.Voltage;
 
   // Current
-  Serial.print(" mA:");
-  Serial.print(frame.Current);
+  result += " mA:";
+  result += frame.Current;
 
   // Power
-  Serial.print(" W:");
-  Serial.print(frame.Power);
+  result += " W:";
+  result += frame.Power;
 
   // AccumulatedPower
-  Serial.print(" kWh:");
-  Serial.print(frame.AccumulatedPower);
+  result += " kWh:";
+  result += frame.AccumulatedPower;
 
   // Connected
-  Serial.print(" Con.:");
-  Serial.print(frame.ConsumersConnected);
+  result += " Con.:";
+  result += frame.ConsumersConnected;
 
   // Pairing
-  Serial.print(" Pair:");
-  Serial.print(frame.PairingFlag);
+  result += " Pair:";
+  result += frame.PairingFlag;
 
   // CRC
-  Serial.print(" CRC:");
-  Serial.print(frame.CRC);
+  result += " CRC:";
+  result += frame.CRC;
  
-  Serial.println();
-
+  return result;
 }
 
 

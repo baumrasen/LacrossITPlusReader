@@ -10,10 +10,10 @@
 //            2014-03-14: I have this in SubVersion, so no need to do it here
 
 #define PROGNAME         "LaCrosseITPlusReader"
-#define PROGVERS         "10.1q" 
+#define PROGVERS         "10.1r" 
 
 #include "SPI.h"
-#include "RFMxx.h"
+#include "RFM.h"
 #include "SensorBase.h"
 #include "LaCrosse.h"
 #include "LevelSenderLib.h"
@@ -60,9 +60,8 @@ unsigned long lastToggleR1 = 0;
 unsigned long lastToggleR2 = 0;
 byte commandData[32];
 byte commandDataPointer = 0;
-RFMxx rfm1(11, 12, 13, 10, 2, true);
-RFMxx rfm2(11, 12, 13, 8, 3, false);
-
+RFM rfm1(11, 12, 13, 10, true);
+RFM rfm2(11, 12, 13, 8, false);
 
 JeeLink jeeLink;
 InternalSensors internalSensors;
@@ -218,7 +217,7 @@ void SetDebugMode(boolean mode) {
 
 void HandleCommandO(byte rfmNbr, unsigned long value, byte *data, byte size) {
   // 50305o (is 0xC481) for RFM12 or 1,4o for RFM69
-  if (size == 1 && rfm1.GetRadioType() == RFMxx::RFM12B) {
+  if (size == 1 && rfm1.GetRadioType() == RFM::RFM12B) {
     if (rfmNbr == 1) {
       rfm1.SetHFParameter(value);
     }
@@ -226,7 +225,7 @@ void HandleCommandO(byte rfmNbr, unsigned long value, byte *data, byte size) {
       rfm2.SetHFParameter(value);
     }
   }
-  else if (size == 2 && rfm1.GetRadioType() == RFMxx::RFM69CW) {
+  else if (size == 2 && rfm1.GetRadioType() == RFM::RFM69CW) {
     if (rfmNbr == 1) {
       rfm1.SetHFParameter(data[0], data[1]);
     }
@@ -329,7 +328,7 @@ void HandleCommandV() {
   Serial.println(']');
 }
 
-void HandleReceivedData(RFMxx *rfm) {
+void HandleReceivedData(RFM *rfm) {
   rfm->EnableReceiver(false);
 
   byte payload[PAYLOADSIZE];
@@ -424,7 +423,7 @@ void HandleReceivedData(RFMxx *rfm) {
   rfm->EnableReceiver(true);
 }
 
-void HandleDataRateToggle(RFMxx *rfm, unsigned long *lastToggle, unsigned long *dataRate, uint16_t interval, byte toggleMode) {
+void HandleDataRateToggle(RFM *rfm, unsigned long *lastToggle, unsigned long *dataRate, uint16_t interval, byte toggleMode) {
   if (interval > 0) {
     // After about 50 days millis() will overflow to zero 
     if (millis() < *lastToggle) {
@@ -513,19 +512,24 @@ void setup(void) {
   SetDebugMode(DEBUG);
   LaCrosse::USE_OLD_ID_CALCULATION = USE_OLD_IDS;
   
+  Wire.begin();
+
   internalSensors.TryInitializeBMP180();
   internalSensors.SetAltitudeAboveSeaLevel(ALTITUDE_ABOVE_SEA_LEVEL);
 
   jeeLink.EnableLED(ENABLE_ACTIVITY_LED);
   lastToggleR1 = millis();
   
-  rfm1.InitialzeLaCrosse();
+  ////rfm1.Begin();
+  ////rfm2.Begin();
+
+  rfm1.InitializeLaCrosse();
   rfm1.SetFrequency(INITIAL_FREQ);
   rfm1.SetDataRate(DATA_RATE_R1);
   rfm1.EnableReceiver(true);
   
   if(rfm2.IsConnected()) {
-    rfm2.InitialzeLaCrosse();
+    rfm2.InitializeLaCrosse();
     rfm2.SetFrequency(INITIAL_FREQ);
     rfm2.SetDataRate(DATA_RATE_R2);
     rfm2.EnableReceiver(true);

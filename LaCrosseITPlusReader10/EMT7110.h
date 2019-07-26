@@ -23,10 +23,10 @@ public:
     bool  IsValid;
   };
 
-  static bool CrcIsValid(byte *data);
+  static bool CrcIsValid(byte data[]);
   static const byte FRAME_LENGTH = 12;
   static void DecodeFrame(byte *data, struct EMT7110::Frame *frame);
-  static void AnalyzeFrame(byte *data);
+  static String AnalyzeFrame(byte *data);
   static String GetFhemDataString(byte *data);
   static bool TryHandleData(byte *data);
   static bool IsValidDataRate(unsigned long dataRate);

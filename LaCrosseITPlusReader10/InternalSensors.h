@@ -16,7 +16,7 @@ public:
     bool  HasTemperature;
     bool  HasPressure;
 
-    float Temperature;    // °C 
+    float Temperature;    // Â°C 
     int  Pressure;        // hPa
   };
 

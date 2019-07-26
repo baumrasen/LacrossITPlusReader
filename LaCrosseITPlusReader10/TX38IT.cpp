@@ -190,7 +190,7 @@ void TX38IT::AnalyzeFrame(byte *data) {
     static unsigned long lastMillis;
     unsigned long now = millis();
     char div[16];
-    sprintf(div, "%06d ", now - lastMillis);
+    sprintf(div, "%06lu ", now - lastMillis);
     lastMillis = millis();
     Serial.print(div);
 

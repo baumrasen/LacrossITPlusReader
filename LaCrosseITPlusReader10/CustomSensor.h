@@ -3,7 +3,7 @@
 
 #include "Arduino.h"
 #include "SensorBase.h"
-#include "RFMxx.h"
+#include "RFM.h"
 
 #define CUSTOM_SENSOR_HEADER 0xCC
 #define CS_PL_BUFFER_SIZE 128
@@ -21,11 +21,11 @@ public:
   static byte GetFrameLength(byte data[]);
   static void EncodeFrame(struct CustomSensor::Frame *frame, byte bytes[CS_PL_BUFFER_SIZE]);
   static void DecodeFrame(byte *bytes, struct CustomSensor::Frame *frame);
-  static void AnalyzeFrame(byte *data);
+  static String AnalyzeFrame(byte *data);
   static bool TryHandleData(byte *data);
   static String GetFhemDataString(byte *data);
   static bool IsValidDataRate(unsigned long dataRate);
-  static void SendFrame(struct CustomSensor::Frame *frame, RFMxx *rfm, unsigned long dataRate);
+  static void SendFrame(struct CustomSensor::Frame *frame, RFM *rfm, unsigned long dataRate);
 
 
 protected:

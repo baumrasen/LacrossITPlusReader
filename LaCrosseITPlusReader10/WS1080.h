@@ -10,7 +10,7 @@ public:
   static const byte FRAME_LENGTH = 10;
   static byte CalculateCRC(byte data[]);
   static void DecodeFrame(byte *bytes, struct WS1080::Frame *frame);
-  static void AnalyzeFrame(byte *data);
+  static String AnalyzeFrame(byte *data);
   static bool TryHandleData(byte *data);
   static String GetFhemDataString(byte *data);
   static bool IsValidDataRate(unsigned long dataRate);

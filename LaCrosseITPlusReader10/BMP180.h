@@ -6,6 +6,29 @@
 
 #define BMP180_ADDRESS 0x77
 
+typedef struct {
+  int16_t CAC1;
+  int16_t  CAC2;
+  int16_t  CAC3;
+  uint16_t  CAC4;
+  uint16_t  CAC5;
+  uint16_t  CAC6;
+  int16_t CB1;
+  int16_t CB2;
+  int16_t  CMB;
+  int16_t  CMC;
+  int16_t  CMD;
+
+} bmp180_compensation;
+
+typedef struct {
+  int16_t ADCT;
+  int32_t ADCP;
+
+  float Temperature;
+  int32_t Pressure;
+} BMP180Value;
+
 class BMP180 {
 public:
   BMP180();
@@ -13,7 +36,8 @@ public:
   void SetAltitudeAboveSeaLevel(int32_t altitude);
   float GetTemperature(void);
   int32_t GetPressure(void);
-
+  bmp180_compensation GetCompensationValues();
+  BMP180Value GetLastMeasuredValue();
 
 private:
   int32_t m_altitudeAboveSeaLevel = 0;
@@ -24,8 +48,9 @@ private:
   uint16_t Read16(uint8_t addr);
   void Write8(uint8_t addr, uint8_t data);
 
-  int16_t m_ac1, m_ac2, m_ac3, m_b1, m_b2, m_mb, m_mc, m_md;
-  uint16_t m_ac4, m_ac5, m_ac6;
+  bmp180_compensation m_compensation;
+  BMP180Value m_lastValue;
+
 };
 
 #endif

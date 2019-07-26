@@ -11,13 +11,13 @@
 //  |  | |  |  |  | |  |  |  | |  |  |  | |  |  |  | `----- Voltage * 0.1V
 //  |  | |  |  |  | |  |  |  | |  |  |  | |  |  `---------- Voltage * 1V 
 //  |  | |  |  |  | |  |  |  | |  |  |  | |  |
-//  |  | |  |  |  | |  |  |  | |  |  |  | `----- Temperature T *  0.1  \
+//  |  | |  |  |  | |  |  |  | |  |  |  | `----- Temperature T *  0.1  |
 //  |  | |  |  |  | |  |  |  | |  |  `---------- Temperature T *  1    |  +40 °C
-//  |  | |  |  |  | |  |  |  | `---------------- Temperature T * 10    /
+//  |  | |  |  |  | |  |  |  | `---------------- Temperature T * 10    |
 //  |  | |  |  |  | |  |  |  | 
-//  |  | |  |  |  | |  |  `----- Level *   1  \
+//  |  | |  |  |  | |  |  `----- Level *   1  |
 //  |  | |  |  |  | `----------- Level *  10  |  0,5cm steps
-//  |  | |  |  `---------------- Level * 100  /
+//  |  | |  |  `---------------- Level * 100  |
 //  |  | |  |
 //  |  | `----- ID (0 .. 15)
 //  |  | 
@@ -110,60 +110,52 @@ void LevelSenderLib::EncodeFrame(struct Frame *frame, byte *bytes) {
   bytes[FRAME_LENGTH - 1] = CalculateCRC(bytes);
 }
 
-void LevelSenderLib::AnalyzeFrame(byte *data) {
+String LevelSenderLib::AnalyzeFrame(byte *data) {
+  String result;
   struct Frame frame;
   DecodeFrame(data, &frame);
 
-  // MilliSeconds
-  static unsigned long lastMillis;
-  unsigned long now = millis();
-  char div[16];
-  sprintf(div, "%06d ", now - lastMillis);
-  lastMillis = millis();
-  Serial.print(div);
-
   // Show the raw data bytes
-  Serial.print("LevelSender [");
+  result += "LevelSender [";
   for (int i = 0; i < FRAME_LENGTH; i++) {
-    Serial.print(data[i], HEX);
-    Serial.print(" ");
+    result += String(data[i], HEX);
+    result += " ";
   }
-  Serial.print("]");
+  result += "]";
 
   // Check CRC
   if (!frame.IsValid) {
-    Serial.print(" CRC:WRONG");
+    result += " CRC:WRONG";
   }
   else {
-    Serial.print(" CRC:OK");
+    result += " CRC:OK";
 
     // Start
-    Serial.print(" S:");
-    Serial.print(frame.Header, DEC);
+    result += " S:";
+    result += String(frame.Header, HEX);
 
     // Sensor ID
-    Serial.print(" ID:");
-    Serial.print(frame.ID, DEC);
+    result += " ID:";
+    result += String(frame.ID, HEX);
 
     // Level
-    Serial.print(" Level:");
-    Serial.print(frame.Level);
+    result += " Level:";
+    result += frame.Level;
 
     // Temperature
-    Serial.print(" Temp:");
-    Serial.print(frame.Temperature);
+    result += " Temp:";
+    result += frame.Temperature;
 
     // Voltage
-    Serial.print(" Volt:");
-    Serial.print(frame.Voltage);
+    result += " Volt:";
+    result += frame.Voltage;
 
     // CRC
-    Serial.print(" CRC:");
-    Serial.print(frame.CRC, DEC);
+    result += " CRC:";
+    result += String(frame.CRC, HEX);
   }
 
-  Serial.println();
-
+  return result;
 }
 
 

@@ -11,7 +11,7 @@ public:
   static byte CalculateCRC(byte data[]);
   static void EncodeFrame(struct WSBase::Frame *frame, byte bytes[4]);
   static void DecodeFrame(byte *bytes, struct WSBase::Frame *frame);
-  static void AnalyzeFrame(byte *data);
+  static String AnalyzeFrame(byte *data);
   static bool TryHandleData(byte *data);
   static String GetFhemDataString(byte *data);
   static bool IsValidDataRate(unsigned long dataRate);

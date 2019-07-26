@@ -3,7 +3,7 @@
 String WSBase::BuildFhemDataString(struct Frame *frame, byte sensorType) {
   /* Format
   OK WS 60  1   4   193 52    2 88  4   101 15  20   ID=60  21.7°C  52%rH  600mm  Dir.: 112.5°  Wind:15m/s  Gust:20m/s
-  OK WS ID  XXX TTT TTT HHH RRR RRR DDD DDD SSS SSS GGG GGG FFF
+  OK WS ID  XXX TTT TTT HHH RRR RRR DDD DDD SSS SSS GGG GGG FFF PPP PPP
   |  |  |   |   |   |   |   |   |   |   |   |   |   |   |   |-- Flags *
   |  |  |   |   |   |   |   |   |   |   |   |   |   |   |------ WindGust * 10 LSB (0.0 ... 50.0 m/s)           FF/FF = none
   |  |  |   |   |   |   |   |   |   |   |   |   |   |---------- WindGust * 10 MSB
@@ -38,7 +38,7 @@ String WSBase::BuildFhemDataString(struct Frame *frame, byte sensorType) {
   if (frame->HasTemperature && (frame->Temperature < -40.0 || frame->Temperature > 59.9)) {
     isValid = false;
   }
-  if (frame->HasHumidity && (frame->Humidity < 1 || frame->Humidity > 99)) {
+  if (frame->HasHumidity && (frame->Humidity < 1 || frame->Humidity > 100)) {
     isValid = false;
   }
 
@@ -79,6 +79,14 @@ String WSBase::BuildFhemDataString(struct Frame *frame, byte sensorType) {
       flags += 4;
     }
     pBuf += AddByte(flags, true);
+
+    // add pressure
+    if (frame->HasPressure) {
+      pBuf += " ";
+      pBuf += (byte)(frame->Pressure >> 8);
+      pBuf += " ";
+      pBuf += (byte)(frame->Pressure);
+    }
   }
 
   return pBuf;
@@ -118,106 +126,108 @@ float WSBase::DecodeValue(byte q1, byte q2, byte q3) {
   return result;
 }
 
-void WSBase::AnalyzeFrame(byte *data, Frame *frame, byte frameLength, String prefix) {
+String WSBase::AnalyzeFrame(byte *data, Frame *frame, byte frameLength, String prefix) {
+  String result;
+
   // Show the raw data bytes
-  Serial.print(prefix);
-  Serial.print(" [");
+  result += prefix;
+  result += " [";
   for (int i = 0; i < frameLength; i++) {
-    Serial.print(data[i], HEX);
+    result += String(data[i], HEX);
     if (i < frameLength) {
-      Serial.print(" ");
+      result += " ";
     }
   }
-  Serial.print("]");
+  result += "]";
 
   // CRC
   if (!frame->IsValid) {
-    Serial.println(" CRC:WRONG");
+    result += " CRC:WRONG";
   }
   else {
-    Serial.print(" CRC:OK");
+    result += " CRC:OK";
 
     // Start
-    Serial.print(" S:");
-    Serial.print(frame->Header, HEX);
+    result += " S:";
+    result += String(frame->Header, HEX);
 
     // Sensor ID
-    Serial.print(" ID:");
-    Serial.print(frame->ID, HEX);
+    result += " ID:";
+    result += String(frame->ID, HEX);
 
     // New battery flag
-    Serial.print(" NewBatt:");
-    Serial.print(frame->NewBatteryFlag, DEC);
+    result += " NewBatt:";
+    result += String(frame->NewBatteryFlag, DEC);
 
     // Low battery flag
-    Serial.print(" LowBatt:");
-    Serial.print(frame->LowBatteryFlag, DEC);
+    result += " LowBatt:";
+    result += String(frame->LowBatteryFlag, DEC);
 
     // Error flag
-    Serial.print(" Error:");
-    Serial.print(frame->ErrorFlag, DEC);
+    result += " Error:";
+    result += String(frame->ErrorFlag, DEC);
 
     // Temperature
-    Serial.print(" Temp:");
+    result += " Temp:";
     if (frame->HasTemperature) {
-      Serial.print(frame->Temperature);
+      result += frame->Temperature;
     }
     else {
-      Serial.print("---");
+      result += "---";
     }
 
     // Humidity
-    Serial.print(" Hum:");
+    result += " Hum:";
     if (frame->HasHumidity) {
-      Serial.print(frame->Humidity);
+      result += frame->Humidity;
     }
     else {
-      Serial.print("---");
+      result += "---";
     }
 
     // Rain
-    Serial.print(" Rain:");
+    result += " Rain:";
     if (frame->HasRain) {
-      Serial.print(frame->Rain);
+      result += frame->Rain;
     }
     else {
-      Serial.print("---");
+      result += "---";
     }
 
     // Wind speed
-    Serial.print(" Wind:");
+    result += " Wind:";
     if (frame->HasWindSpeed) {
-      Serial.print(frame->WindSpeed);
-      Serial.print("m/s");
+      result += frame->WindSpeed;
+      result += "m/s";
     }
     else {
-      Serial.print("---");
+      result += "---";
     }
 
     // Wind direction
-    Serial.print(" from:");
+    result += " from:";
     if (frame->HasWindDirection) {
-      Serial.print(frame->WindDirection);
+      result += frame->WindDirection;
     }
     else {
-      Serial.print("---");
+      result += "---";
     }
 
     // Wind gust
-    Serial.print(" Gust:");
+    result += " Gust:";
     if (frame->HasWindGust) {
-      Serial.print(frame->WindGust);
-      Serial.print(" m/s");
+      result += frame->WindGust;
+      result += " m/s";
     }
     else {
-      Serial.print("---");
+      result += "---";
     }
 
     // CRC
-    Serial.print(" CRC:");
-    Serial.print(frame->CRC, HEX);
+    result += " CRC:";
+    result += String(frame->CRC, HEX);
 
-    Serial.println();
   }
 
+  return result;
 }

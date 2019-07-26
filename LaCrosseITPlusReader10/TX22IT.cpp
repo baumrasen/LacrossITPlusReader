@@ -113,6 +113,7 @@ void TX22IT::DecodeFrame(byte *bytes, struct Frame *frame) {
   frame->HasWindSpeed = false;
   frame->HasWindDirection = false;
   frame->HasWindGust = false;
+  frame->HasPressure = false;
   
   frame->Temperature = 0;
   frame->Humidity = 0;
@@ -196,13 +197,13 @@ byte TX22IT::GetFrameLength(byte data[]) {
 }
 
 
-void TX22IT::AnalyzeFrame(byte *data) {
+String TX22IT::AnalyzeFrame(byte *data) {
   struct Frame frame;
   DecodeFrame(data, &frame);
 
   byte frameLength = TX22IT::GetFrameLength(data);
 
-  WSBase::AnalyzeFrame(data, &frame, frameLength, "TX22IT");
+  return WSBase::AnalyzeFrame(data, &frame, frameLength, "TX22IT");
 
 }
 

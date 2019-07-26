@@ -33,6 +33,7 @@ void WS1080::DecodeFrame(byte *bytes, struct Frame *frame) {
   frame->HasWindSpeed = true;
   frame->HasWindDirection = true;
   frame->HasWindGust = true;
+  frame->HasPressure = false;
   
 
   frame->CRC = bytes[WS1080::FRAME_LENGTH - 1];
@@ -79,13 +80,13 @@ void WS1080::DecodeFrame(byte *bytes, struct Frame *frame) {
 }
 
 
-void WS1080::AnalyzeFrame(byte *data) {
+String WS1080::AnalyzeFrame(byte *data) {
   struct Frame frame;
   DecodeFrame(data, &frame);
 
   byte frameLength = WS1080::FRAME_LENGTH;
 
-  WSBase::AnalyzeFrame(data, &frame, frameLength, "WS1080");
+  return WSBase::AnalyzeFrame(data, &frame, frameLength, "WS1080");
 }
 
 String WS1080::GetFhemDataString(byte *data) {

@@ -170,7 +170,8 @@ String LaCrosse::BuildFhemDataString(struct Frame *frame) {
   return pBuf;
 }
 
-void LaCrosse::AnalyzeFrame(byte *data) {
+String LaCrosse::AnalyzeFrame(byte *data) {
+  String result;
   struct Frame frame;
   DecodeFrame(data, &frame);
 
@@ -190,65 +191,57 @@ void LaCrosse::AnalyzeFrame(byte *data) {
   }
 
   if (!hideIt) {
-    // MilliSeconds
-    static unsigned long lastMillis;
-    unsigned long now = millis();
-    char div[16];
-    sprintf(div, "%06d ", now - lastMillis);
-    lastMillis = millis();
-    Serial.print(div);
-
     // Show the raw data bytes
-    Serial.print("LaCrosse [");
+    result += "LaCrosse [";
     for (int i = 0; i < FRAME_LENGTH; i++) {
-      Serial.print(data[i], HEX);
-      Serial.print(" ");
+      result += String(data[i], HEX);
+      result += " ";
     }
-    Serial.print("]");
+    result += "]";
 
     // Check CRC
     if (!frame.IsValid) {
-      Serial.print(" CRC:WRONG");
+      result += " CRC:WRONG";
     }
     else {
-      Serial.print(" CRC:OK");
+      result += " CRC:OK";
 
       // Start
-      Serial.print(" S:");
-      Serial.print(frame.Header, DEC);
+      result += " S:";
+      result += String(frame.Header, HEX);
 
       // Sensor ID
-      Serial.print(" ID:");
-      Serial.print(frame.ID, DEC);
+      result += " ID:";
+      result += String(frame.ID, HEX);
 
       // New battery flag
-      Serial.print(" NewBatt:");
-      Serial.print(frame.NewBatteryFlag, DEC);
+      result += " NewBatt:";
+      result += String(frame.NewBatteryFlag, DEC);
 
       // Bit 12
-      Serial.print(" Bit12:");
-      Serial.print(frame.Bit12, DEC);
+      result += " Bit12:";
+      result += String(frame.Bit12, DEC);
 
       // Temperature
-      Serial.print(" Temp:");
-      Serial.print(frame.Temperature);
-
-      // Weak battery flag
-      Serial.print(" WeakBatt:");
-      Serial.print(frame.WeakBatteryFlag, DEC);
+      result += " Temp:";
+      result += frame.Temperature;
 
       // Humidity
-      Serial.print(" Hum:");
-      Serial.print(frame.Humidity, DEC);
+      result += " Hum:";
+      result += frame.Humidity;
+
+      // Weak battery flag
+      result += " WeakBatt:";
+      result += String(frame.WeakBatteryFlag, DEC);
 
       // CRC
-      Serial.print(" CRC:");
-      Serial.print(frame.CRC, DEC);
+      result += " CRC:";
+      result += String(frame.CRC, DEC);
     }
-
-    Serial.println();
+    
   }
 
+  return result;
 }
 
 String LaCrosse::GetFhemDataString(byte *data) {

@@ -21,6 +21,7 @@ public:
     bool  HasWindSpeed;
     bool  HasWindDirection;
     bool  HasWindGust;
+    bool  HasPressure;
 
     float Temperature;    // °C 
     byte  Humidity;       // %rH
@@ -28,6 +29,7 @@ public:
     float WindDirection;  // Degree
     float  WindSpeed;     // m/s
     float  WindGust;      // m/s
+    int  Pressure;        // hPa
   };
 
 
@@ -36,7 +38,7 @@ protected:
   static String AddWord(word value, bool hasValue);
   static String AddByte(byte value, bool hasValue);
   static float DecodeValue(byte q1, byte q2, byte q3);
-  static void AnalyzeFrame(byte *data, Frame *frame, byte frameLength, String prefix);
+  static String AnalyzeFrame(byte *data, Frame *frame, byte frameLength, String prefix);
 };
 
 #endif

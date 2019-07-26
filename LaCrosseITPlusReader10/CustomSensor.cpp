@@ -75,7 +75,7 @@ String CustomSensor::BuildFhemDataString(struct CustomSensor::Frame *frame) {
 }
 
 // ----------------------------------------------------------------
-void CustomSensor::SendFrame(struct CustomSensor::Frame *frame, RFMxx *rfm, unsigned long dataRate) {
+void CustomSensor::SendFrame(struct CustomSensor::Frame *frame, RFM *rfm, unsigned long dataRate) {
   byte payload[CS_PL_BUFFER_SIZE];
   EncodeFrame(frame, payload);
 
@@ -88,49 +88,49 @@ void CustomSensor::SendFrame(struct CustomSensor::Frame *frame, RFMxx *rfm, unsi
 }
 
 // ----------------------------------------------------------------
-void CustomSensor::AnalyzeFrame(byte *data) {
+String CustomSensor::AnalyzeFrame(byte *data) {
+  String result;
   struct CustomSensor::Frame frame;
   DecodeFrame(data, &frame);
-
   byte frameLength = CustomSensor::GetFrameLength(data);
 
   // Show the raw data bytes
-  Serial.print("CustomSensor [");
+  result += "CustomSensor [";
   for (int i = 0; i < frameLength; i++) {
-    Serial.print(data[i], HEX);
-    Serial.print(" ");
+    result += String(data[i], HEX);
+    result += " ";
   }
-  Serial.print("] ");
+  result += "] ";
 
   // CRC
   if (!frame.IsValid) {
-    Serial.println(" CRC:WRONG");
+    result += " CRC:WRONG";
   }
   else {
-    Serial.print(" CRC:OK");
+    result += " CRC:OK";
 
     // Sensor ID
-    Serial.print(" ID:0x");
-    Serial.print(frame.ID, HEX);
+    result += " ID:0x";
+    result += String(frame.ID, HEX);
 
     // Size
-    Serial.print(" NbrOfDataBytes:");
-    Serial.print(frame.NbrOfDataBytes, DEC);
+    result += " NbrOfDataBytes:";
+    result += String(frame.NbrOfDataBytes, DEC);
     
     // Data
-    Serial.print(" Data:");
+    result += " Data:";
     for (int i = 0; i < frame.NbrOfDataBytes; i++) {
-      Serial.print("0x");
-      Serial.print(frame.Data[i], HEX);
-      Serial.print(" ");
+      result += "0x";
+      result += String(frame.Data[i], HEX);
+      result += " ";
     }
 
     // CRC
-    Serial.print(" CRC:0x");
-    Serial.print(frame.CRC, HEX);
-
-    Serial.println();
+    result += " CRC:0x";
+    result += String(frame.CRC, HEX);
   }
+
+  return result;
 }
 
 // ----------------------------------------------------------------

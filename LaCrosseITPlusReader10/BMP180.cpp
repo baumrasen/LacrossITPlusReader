@@ -7,22 +7,20 @@ BMP180::BMP180() {
 boolean BMP180::TryInitialize() {
   boolean result = false;
 
-  Wire.begin();
-
   if (Read8(0xD0) == 0x55) {
-    m_ac1 = Read16(0xAA);
-    m_ac2 = Read16(0xAC);
-    m_ac3 = Read16(0xAE);
-    m_ac4 = Read16(0xB0);
-    m_ac5 = Read16(0xB2);
-    m_ac6 = Read16(0xB4);
+    m_compensation.CAC1 = Read16(0xAA);
+    m_compensation.CAC2 = Read16(0xAC);
+    m_compensation.CAC3 = Read16(0xAE);
+    m_compensation.CAC4 = Read16(0xB0);
+    m_compensation.CAC5 = Read16(0xB2);
+    m_compensation.CAC6 = Read16(0xB4);
 
-    m_b1 = Read16(0xB6);
-    m_b2 = Read16(0xB8);
+    m_compensation.CB1 = Read16(0xB6);
+    m_compensation.CB2 = Read16(0xB8);
 
-    m_mb = Read16(0xBA);
-    m_mc = Read16(0xBC);
-    m_md = Read16(0xBE);
+    m_compensation.CMB = Read16(0xBA);
+    m_compensation.CMC = Read16(0xBC);
+    m_compensation.CMD = Read16(0xBE);
 
     result = true;
   }
@@ -35,15 +33,17 @@ void BMP180::SetAltitudeAboveSeaLevel(int32_t altitude) {
 }
 
 int32_t BMP180::CalculateB5(int32_t ut) {
-  int32_t x1 = (ut - (int32_t)m_ac6) * ((int32_t)m_ac5) >> 15;
-  int32_t x2 = ((int32_t)m_mc << 11) / (x1 + (int32_t)m_md);
+  int32_t x1 = (ut - (int32_t)m_compensation.CAC6) * ((int32_t)m_compensation.CAC5) >> 15;
+  int32_t x2 = ((int32_t)m_compensation.CMC << 11) / (x1 + (int32_t)m_compensation.CMD);
   return x1 + x2;
 }
 
 uint16_t BMP180::GetRawTemperature(void) {
   Write8(0xF4, 0x2E);
   delay(5);
-  return Read16(0xF6);
+  uint16_t rt = Read16(0xF6);
+  m_lastValue.ADCT = rt;
+  return rt;
 }
 
 uint32_t BMP180::GetRawPressure(void) {
@@ -57,6 +57,7 @@ uint32_t BMP180::GetRawPressure(void) {
   raw <<= 8;
   raw |= Read8(0xF6 + 2);
   raw >>= 6;
+  m_lastValue.ADCP = raw;
 
   return raw;
 }
@@ -71,14 +72,14 @@ int32_t BMP180::GetPressure(void) {
   B5 = CalculateB5(UT);
 
   B6 = B5 - 4000;
-  X1 = ((int32_t)m_b2 * ((B6 * B6) >> 12)) >> 11;
-  X2 = ((int32_t)m_ac2 * B6) >> 11;
+  X1 = ((int32_t)m_compensation.CB2 * ((B6 * B6) >> 12)) >> 11;
+  X2 = ((int32_t)m_compensation.CAC2 * B6) >> 11;
   X3 = X1 + X2;
-  B3 = ((((int32_t)m_ac1 * 4 + X3) << 2) + 2) / 4;
-  X1 = ((int32_t)m_ac3 * B6) >> 13;
-  X2 = ((int32_t)m_b1 * ((B6 * B6) >> 12)) >> 16;
+  B3 = ((((int32_t)m_compensation.CAC1 * 4 + X3) << 2) + 2) / 4;
+  X1 = ((int32_t)m_compensation.CAC3 * B6) >> 13;
+  X2 = ((int32_t)m_compensation.CB1 * ((B6 * B6) >> 12)) >> 16;
   X3 = ((X1 + X2) + 2) >> 2;
-  B4 = ((uint32_t)m_ac4 * (uint32_t)(X3 + 32768)) >> 15;
+  B4 = ((uint32_t)m_compensation.CAC4 * (uint32_t)(X3 + 32768)) >> 15;
   B7 = ((uint32_t)UP - B3) * (uint32_t)(50000UL >> 2);
 
   if (B7 < 0x80000000) {
@@ -93,9 +94,10 @@ int32_t BMP180::GetPressure(void) {
 
   p = p + ((X1 + X2 + (int32_t)3791) >> 4);
 
-  p /= powf(((float) 1.0 - ((float)m_altitudeAboveSeaLevel / 44330.0)), (float) 5.255);
+  m_lastValue.Pressure = p / 100;
 
-  p /= 100.0;
+  p /= pow(((float) 1.0 - ((float)m_altitudeAboveSeaLevel / 44330.0)), (float) 5.255);
+  p /= 100;
 
   return p;
 }
@@ -109,11 +111,19 @@ float BMP180::GetTemperature(void) {
 
   B5 = CalculateB5(UT);
   temp = (B5 + 8) >> 4;
-  temp /= 10;
+  temp /= 10.0;
+  m_lastValue.Temperature = temp;
 
   return temp;
 }
 
+bmp180_compensation BMP180::GetCompensationValues() {
+  return m_compensation;
+}
+
+BMP180Value BMP180::GetLastMeasuredValue() {
+  return m_lastValue;
+}
 
 uint8_t BMP180::Read8(uint8_t a) {
   uint8_t ret;
