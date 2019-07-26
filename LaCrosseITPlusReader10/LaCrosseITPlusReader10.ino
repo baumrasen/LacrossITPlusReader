@@ -28,7 +28,7 @@
 #define RF_PIN	PINB
 
 #define SDI 3              // polling  4 Pins ,3 SPI + Chipselect
-#define SCK 5              // differs with Jee-node lib !
+#define SPI_SCK 5              // differs with Jee-node lib !
 #define CS  2  
 #define SDO 4 
 
@@ -36,29 +36,144 @@
 #define CRC_POLY    0x31  // CRC-8 = 0x31 is for: x8 + x5 + x4 + 1
 #define DEBUG       0     // set to 1 to see debug messages
 
-// **********************************************************************
+#define ENABLE_ACTIVITY_LED 1
 
-void loop ()
+/** 
+ *	http://depa.usst.edu.cn/chenjq/www2/SDesign/JavaScript/CRCcalculation.htm
+ *
+ *	CRC order  (1..64): 8
+ *	CRC polynom  (hex): 31
+ *
+ *	data in hex: 9EC5576A -> crc BD
+ */
+
+/* http://stackoverflow.com/questions/12015112/checksum-crc-calculation */
+/// <summary>A variant of CRC-8</summary>
+/// <param name="data">Pass here the first 4 bytes of data, e.g. { 0x4E 0x50 0x92 0x33 }</param>
+/// <returns>The computed SRC value, e.g. 0xA1 for the data specified above.</returns>
+
+/* 0x31 is for: x8 + x5 + x4 + 1 */
+#define CRC_POLY 0x31
+uint8_t crc8( uint8_t *data, int len )
 {
-  unsigned int frame[5];
-  //get message
-  receive(frame);
-  //check if valid for LaCrosse IT+ sensor
-  if (is_mg_valid(frame[0])) {
-    //check CRC
-    if (is_crc_valid(frame[4])) {
-      //calculate temp and humidity
-      float temp = calculate_temp(frame[1], frame[2]);
-      unsigned int hum         =  frame[3];
-      unsigned int batInserted = (frame[1] & 0x20) << 2;
-      //print into serial port
-      //String out = prepare_output_string(get_sensor_id(frame[0], frame[1]), temp, hum);
-      //Serial.println(out);
-      String out = prepare_jeestring(get_sensor_id(frame[0], frame[1]), temp, hum, batInserted);
-      if (out != "")
-        Serial.println(out);
-      Serial.flush();
+  int i,j;
+  uint8_t res = 0;
+  for (j=0; j<len; j++) {
+    uint8_t val = data[j];
+    for( i = 0; i < 8; i++ ) {
+      uint8_t tmp = (uint8_t)( ( res ^ val ) & 0x80 );
+      res <<= 1;
+      if( 0 != tmp ) {
+        res ^= CRC_POLY;
+      }
+      val <<= 1;
     }
+  }
+  return res;
+}
+
+
+#define TEMP_OFFSET 40.0
+float calculate_temperature(uint8_t *bcd)
+{
+  float t = 0;
+  //t = (((bcd[0] * 100.0)+(bcd[1] * 10.0)+(bcd[2]))/10) - TEMP_OFFSET;
+  t += bcd[0] * 100.0;
+  t += bcd[1] * 10.0;
+  t += bcd[2] * 1.0;
+  t  = t/10;
+  t -= TEMP_OFFSET;
+  return t;
+}
+
+/**
+ * Message Format:   
+ *
+ * .- [0] -. .- [1] -. .- [2] -. .- [3] -. .- [4] -.
+ * |       | |       | |       | |       | |       |
+ * SSSS.DDDD DDN_.TTTT TTTT.TTTT WHHH.HHHH CCCC.CCCC
+ * |  | |     ||  |  | |  | |  | ||      | |       |
+ * |  | |     ||  |  | |  | |  | ||      | `--------- CRC
+ * |  | |     ||  |  | |  | |  | |`-------- Humidity
+ * |  | |     ||  |  | |  | |  | |
+ * |  | |     ||  |  | |  | |  | `---- weak battery
+ * |  | |     ||  |  | |  | |  | 
+ * |  | |     ||  |  | |  | `----- Temperature T * 0.1
+ * |  | |     ||  |  | |  |
+ * |  | |     ||  |  | `---------- Temperature T * 1
+ * |  | |     ||  |  |
+ * |  | |     ||  `--------------- Temperature T * 10
+ * |  | |     | `--- new battery
+ * |  | `---------- ID
+ * `---- START
+ *
+ */
+
+#define FRAME_LENGHT 5
+#define MSG_CRC_OFFSET 4
+#define MSG_HEADER_MASK 0xF0
+#define MSG_START 9
+ 
+struct lacross_message {
+  uint8_t header;
+  uint8_t id;
+  float   temp;
+  uint8_t humidity;
+  uint8_t batt_inserted;
+};
+
+
+
+
+int decode_sensor_frame(struct lacross_message *msg, uint8_t *data, int data_len)
+{
+  uint8_t bcd[3];
+
+  if (crc8(data, 4) != data[MSG_CRC_OFFSET]) {
+    if (DEBUG) { Serial.println("## CRC FAIL ##"); }
+    return -1;
+  }
+
+  msg->header = (data[0] & MSG_HEADER_MASK) >> 4;
+  if (msg->header != MSG_START) {
+    if (DEBUG) { Serial.println("## UNSUPPORTED START ##"); }
+	return -1;
+  }
+
+  msg->batt_inserted = (data[1] & 0x20) << 2;
+
+  msg->id = 0;
+  msg->id |= (data[0] & 0xF) << 2;
+  msg->id |= (data[1] & 0xC0);
+
+  bcd[0] = data[1] & 0xF;
+  bcd[1] = (data[2] & 0xF0) >> 4;
+  bcd[2] = (data[2] & 0xF);
+  msg->temp = calculate_temperature(bcd);
+
+  msg->humidity = data[3];
+  return 0;
+}
+
+
+// **********************************************************************
+void loop (void)
+{
+  unsigned char frame[FRAME_LENGHT];
+  struct lacross_message msg;
+
+  //get message
+  receive(frame, FRAME_LENGHT);
+
+  //check if valid for LaCrosse IT+ sensor
+  if (decode_sensor_frame(&msg, frame, FRAME_LENGHT) == 0 ) {
+
+    String out = prepare_jeestring(&msg);
+
+    if (out != "")
+      Serial.println(out);
+
+    Serial.flush();
   }
   //simple delay, not really needed :)
   delay(100);
@@ -66,13 +181,11 @@ void loop ()
 
 
 //receive message, data[] is length of 5
-void receive(unsigned int *data)
+void receive(unsigned char *msg, int len)
 {
-  unsigned char msg[5];
-  
   if (DEBUG) { Serial.println("Start receiving"); }
 
-  rf12_rxdata(msg, 5);
+  rf12_rxdata(msg, len);
   //just blink once
   activityLed(1);
   delay(70);
@@ -80,67 +193,31 @@ void receive(unsigned int *data)
 
   if (DEBUG) {
     Serial.print("End receiving, HEX raw data: ");
-    for (int i=0; i<5; i++) {
+    for (int i=0; i<len; i++) {
       Serial.print(msg[i], HEX);
       Serial.print(" ");
     }
     Serial.println();  	
   }
-  
-  //rewrite into unsigned int table
-  for (int i=0; i<5; i++) {
-    data[i] = (unsigned int) msg[i];
-  }
 }
 
 
-//prepares fixed-length output message
-String prepare_output_string(unsigned int sensor_id, float temperature, unsigned int humidity) {
-  
-  char       buffer[20];
-  
-  String output = "D:";
-  String sid = String(sensor_id, HEX);
-  if (temperature > 99.9) {
-    temperature = 99.9;
-  }
-  sid.toUpperCase();
-
-  dtostrf(temperature, 3, 1, buffer);
-  String temp = String(buffer);
-  //padding
-  if (temp.length() < 5) {
-    int i=temp.length();
-    for (i; i<5; i++) {
-      temp = " " + temp;
-    }
-  }
-
-  if (humidity > 99) {
-    humidity = 99;
-  }
-  String hum = String(humidity);
-  //padding
-  if (hum.length() < 2) {
-    hum = " " + hum;
-  }
-  output += sid;
-  output += ":";
-  output += temp;
-  output += ":";
-  output += hum;
-  
-  return output;
-}
-
+#define NO_HUMINITY_AVAILABLE 106
 //prepares fixed-length output message for FHEM
-String prepare_jeestring(unsigned int sensor_id, float temperature, unsigned int humidity, unsigned int batInserted) {
-  
+//String prepare_jeestring(unsigned int sensor_id, float temperature, unsigned int humidity, unsigned int batInserted)
+String prepare_jeestring(struct lacross_message *msg)
+{
+
   // D:38: 23.7:99    // Robin - TX29-IT
   // D:28: 23.6:67    // Billy - TX29DTH-IT
   // D:FC: 24.8:99    // Billy - TX25IT CH1
   // D:FC: 30.9:99    // Billy - TX25IT CH2
   // D:1C: 24.3:62    // Billy - TX27TH-IT
+  
+  // OK 9 108 129 5 143 152
+  // OK 9 20 1 4 205 106
+  // OK 9 16 1 4 191 106
+  // OK 9 248 1 4 131 106
 
   String     pBuf;
   bool       pValid = true;
@@ -154,42 +231,50 @@ String prepare_jeestring(unsigned int sensor_id, float temperature, unsigned int
   //----------------------------------------------------------------------------------------
 
   pBuf += "OK 9 ";
-  pBuf += sensor_id;
+  pBuf += msg->id;
   pBuf += ' ';
-  
+
   // bogus check humidity + eval 2 channel TX25IT
-  if ((humidity >= 0 && humidity <= 99) || humidity == 106 || (humidity >= 128 && humidity <= 227) || humidity == 234) {
-    pBuf += 1 | batInserted;
+  // TBD .. Dont understand the magic here!?
+  if ( (msg->humidity >= 0 && msg->humidity <= 99) 
+       || msg->humidity == 106 
+       || (msg->humidity >= 128 && msg->humidity <= 227) 
+       || msg->humidity == 234)
+  {
+    pBuf += 1 | msg->batt_inserted;
     pBuf += ' ';
-  } else if (humidity == 125 || humidity == 253 ) {
-    pBuf += 2 | batInserted;
+  } else if (msg->humidity == 125 || msg->humidity == 253 ) {
+    pBuf += 2 | msg->batt_inserted;
     pBuf += ' ';
   } else {
     return "";
   }
 
   // add temperature
-  uint16_t pTemp = (uint16_t)(temperature * 10 + 1000);
+  uint16_t pTemp = (uint16_t)(msg->temp * 10 + 1000);
   pBuf  += (byte)(pTemp >> 8);
   pBuf  += ' ';
   pBuf  += (byte)(pTemp);
   pBuf  += ' ';
 
   // bogus check temperature
-  if (temperature >= 60 || temperature <= -40)
+  if (msg->temp >= 60 || msg->temp <= -40)
     return "";
 
   // add humidity
-  pBuf += humidity;
+  pBuf += msg->humidity;
 
   return pBuf;
 }
 
-static void activityLed (byte on) {
+static void activityLed (byte on)
+{
+  #if ENABLE_ACTIVITY_LED
 #ifdef LED_PIN
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, !on);
 #endif
+  #endif
 }
 
 static void ledBlink(unsigned int blinksCount) {
@@ -207,28 +292,8 @@ static void ledBlink(unsigned int blinksCount) {
   }
 }
 
-/*
-* compute CRC for LaCrosse IT+ sensor
-*/
-static uint8_t compute_crc(uint8_t b) {
-  uint8_t do_xor;
-  uint8_t reg;
-
-  reg = 0;
-  do_xor = (reg & 0x80);
-
-  reg <<=1;
-  reg |= b;
-
-  if (do_xor) {
-    reg ^= CRC_POLY;
-  }
-
-  return reg;
-}
-
 //init
-void setup () {
+void setup (void) {
   Serial.begin(57600);
   if (DEBUG) {
     Serial.println("*** LaCrosse weather station wireless receiver for IT+ sensors ***");
@@ -239,71 +304,6 @@ void setup () {
   }
   ledBlink(5);
 }
-
-
-//checks if CRC is OK
-boolean is_crc_valid(unsigned int crcByte) {
-  boolean result = false;
-  
-  uint8_t crc_computed = compute_crc((uint8_t) crcByte);
-  if ((unsigned int) crc_computed == crcByte) {
-    result = true;
-    if (DEBUG) { Serial.print("CRC match: "); Serial.println(crc_computed, HEX); }
-  } else {
-    if (DEBUG) {
-      Serial.print("CRC error! Computed is "); Serial.print(crc_computed, HEX);
-      Serial.print(" but received is "); Serial.println(crcByte, HEX);
-    }
-    ledBlink(5); //blink 5 times if CRC is corrupted
-  }
-  return result;
-}
-
-
-//checks if msg starts with 9
-boolean is_mg_valid(unsigned int msgFirstByte) {
-  boolean result = false;
-
-  unsigned int msgFlag = (msgFirstByte & 240) >> 4;
-  if (msgFlag == 9) {
-    result = true;
-    if (DEBUG) { Serial.println("OK, msg starts with 9"); }
-  } else {
-    if (DEBUG) { Serial.print("Msg does not start with 9, it's: "); Serial.println(msgFlag, HEX);}
-  } 
-  return result;
-}
-
-
-//gets sensor ID from first two bytes of msg
-unsigned int get_sensor_id(unsigned int firstByte, unsigned int secondByte) {
-  unsigned int sensor_id = 0;
-  
-  firstByte = firstByte & 15;    //clear 4 most significant bytes
-  secondByte = secondByte & 192; //clear 6 less significant bytes
-  sensor_id = (firstByte << 2) | secondByte;
-  
-  return sensor_id;
-}
-
-
-//calculates temperature
-float calculate_temp(unsigned int firstByte, unsigned int secondByte) {
-  float temp = 0.0;
-  unsigned int firstBCD;
-  unsigned int secondBCD;
-  unsigned int thirdBCD;
-
-  //BCD encoding
-  firstBCD = firstByte & 15; //clear 4 most significant bits
-  secondBCD = (secondByte & 240) >> 4;
-  thirdBCD = secondByte & 15;
-  //minimal temp. is -39.9, so 40 offset is used to calculate temperature
-  temp = (((firstBCD * 100.0) + (secondBCD * 10.0) + thirdBCD) / 10.0) - 40.0;
-
-  return temp;
-}
-
 
 void rf12_rxdata(unsigned char *data, unsigned int number)
 {	
@@ -335,10 +335,10 @@ unsigned short rf12_xfer(unsigned short value)
     value<<=1;
     if (RF_PIN&(1<<SDO))
       value|=1;
-    setb(RF_PORT, SCK);
+    setb(RF_PORT, SPI_SCK);
     asm("nop");
     asm("nop");
-    clrb(RF_PORT, SCK);
+    clrb(RF_PORT, SPI_SCK);
   }
   setb(RF_PORT, CS);
   return value;
@@ -357,7 +357,7 @@ void rf12_ready(void)
 //radio settings for IT+ sensor (868.300MHz, FSK)
 static void rf12_la_init() 
 {
-  RF_DDR=(1<<SDI)|(1<<SCK)|(1<<CS);
+  RF_DDR=(1<<SDI)|(1<<SPI_SCK)|(1<<CS);
   RF_PORT=(1<<CS);
   for (uint8_t  i=0; i<10; i++) _delay_ms(10); // wait until POR done
   rf12_xfer(0x80E8); // 80e8 CONFIGURATION EL,EF,868 band,12.5pF      // iT+ 915  80f8 
@@ -374,8 +374,4 @@ static void rf12_la_init()
   rf12_xfer(0xC800); // c800 NOT USE 
   rf12_xfer(0xC040); // c040 1.66MHz,2.2V 
 }
-
-
-
-
 
