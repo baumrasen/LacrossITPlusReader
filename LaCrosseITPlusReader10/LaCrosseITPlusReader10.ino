@@ -11,12 +11,12 @@
 
 
 #define PROGNAME         "LaCrosseITPlusReader"
-#define PROGVERS         "10.1c"
+#define PROGVERS         "10.1d"
 
 #include "RFM12.h"
 #include "SensorBase.h"
 #include "LaCrosse.h"
-#include "LevelSender.h"
+#include "LevelSenderLib.h"
 #include "EMT7110.h"
 #include "WT440XH.h"
 #include "JeeLink.h"
@@ -116,9 +116,7 @@ static void HandleSerialPort(char c) {
 
 void SetDebugMode(boolean mode) {
   DEBUG = mode;
-  LevelSender::SetDebugMode(mode);
-  LaCrosse::SetDebugMode(mode);
-  LevelSender::SetDebugMode(mode);
+  LevelSenderLib::SetDebugMode(mode);
   WT440XH::SetDebugMode(mode);
   rfm.SetDebugMode(mode);
 }
@@ -265,7 +263,7 @@ void loop(void) {
       
       if(ANALYZE_FRAMES) {
         LaCrosse::AnalyzeFrame(receiveBuffer);
-        LevelSender::AnalyzeFrame(receiveBuffer);
+        LevelSenderLib::AnalyzeFrame(receiveBuffer);
         EMT7110::AnalyzeFrame(receiveBuffer);
         Serial.println();
       }
@@ -290,8 +288,8 @@ void loop(void) {
         }
 
         // Try LevelSender
-        else if (LevelSender::TryHandleData(receiveBuffer)) {
-          frameLength = LevelSender::FRAME_LENGTH;
+        else if (LevelSenderLib::TryHandleData(receiveBuffer)) {
+          frameLength = LevelSenderLib::FRAME_LENGTH;
         }
 
         // Try EMT7110

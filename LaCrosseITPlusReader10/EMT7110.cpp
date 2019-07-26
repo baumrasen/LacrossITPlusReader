@@ -34,7 +34,7 @@ void EMT7110::DecodeFrame(byte *data, struct Frame *frame) {
     frame->AccumulatedPower = 0.0;
     frame->ConsumersConnected = false;
     frame->CRC = 0;
-    frame->IsValid = true;
+    frame->IsValid = false;
   }
   else {
     frame->Voltage = 128.0 + data[8] * 0.5;
@@ -196,7 +196,7 @@ String EMT7110::GetFhemDataString(struct Frame *frame) {
 bool EMT7110::TryHandleData(byte *data) {
   String fhemString = "";
 
-  if (data[0] == 0x25 && (data[1] == 0x6A || data[1] == 0x2A)) {
+  if (data[0] == 0x25 && (data[1] == 0x6A || data[1] == 0x2A || data[1] == 0x40)) {
     struct Frame frame;
     DecodeFrame(data, &frame);
     if (frame.IsValid) {

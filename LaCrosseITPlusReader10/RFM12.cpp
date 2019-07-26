@@ -1,5 +1,4 @@
 #include "RFM12.h"
-#include "util\delay.h"
 
 
 RFM12::RFM12(byte mosi, byte miso, byte sck, byte ss, byte irq) {
