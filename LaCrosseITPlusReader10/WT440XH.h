@@ -11,6 +11,7 @@ public:
   static const byte FRAME_LENGTH = 6;
   static void DecodeFrame(byte *bytes, struct LaCrosse::Frame *frame);
   static bool TryHandleData(byte *data);
+  static String GetFhemDataString(byte *data);
   static bool CrcIsValid(byte *data);
   
 };

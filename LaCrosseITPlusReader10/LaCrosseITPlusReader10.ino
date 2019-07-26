@@ -10,7 +10,7 @@
 //            2014-03-14: I have this in SubVersion, so no need to do it here
 
 #define PROGNAME         "LaCrosseITPlusReader"
-#define PROGVERS         "10.1k"
+#define PROGVERS         "10.1m"
 
 #include "RFMxx.h"
 #include "SensorBase.h"
@@ -337,32 +337,32 @@ void HandleReceivedData(RFMxx *rfm) {
     byte frameLength = 0;
 
     // Try TX22IT (WS 1600)
-    if (TX22IT::TryHandleData(payload)) {
+    if (TX22IT::IsValidDataRate(rfm->GetDataRate()) && TX22IT::TryHandleData(payload)) {
       frameLength = TX22IT::GetFrameLength(payload);
     }
 
     // Try LaCrosse like TX29DTH
-    else if (LaCrosse::TryHandleData(payload)) {
+    else if (LaCrosse::IsValidDataRate(rfm->GetDataRate()) && LaCrosse::TryHandleData(payload)) {
       frameLength = LaCrosse::FRAME_LENGTH;
     }
 
     // Try LevelSender
-    else if (LevelSenderLib::TryHandleData(payload)) {
+    else if (LevelSenderLib::IsValidDataRate(rfm->GetDataRate()) && LevelSenderLib::TryHandleData(payload)) {
       frameLength = LevelSenderLib::FRAME_LENGTH;
     }
 
     // Try EMT7110
-    else if (EMT7110::TryHandleData(payload)) {
+    else if (EMT7110::IsValidDataRate(rfm->GetDataRate()) && EMT7110::TryHandleData(payload)) {
       frameLength = EMT7110::FRAME_LENGTH;
     }
 
     // Try WT440XH
-    else if (WT440XH::TryHandleData(payload)) {
+    else if (WT440XH::IsValidDataRate(rfm->GetDataRate()) && WT440XH::TryHandleData(payload)) {
       frameLength = WT440XH::FRAME_LENGTH;
     }
 
     // Try TX38IT
-    else if (TX38IT::TryHandleData(payload)) {
+    else if (TX38IT::IsValidDataRate(rfm->GetDataRate()) && TX38IT::TryHandleData(payload)) {
       frameLength = TX38IT::FRAME_LENGTH;
     }
     else if (PASS_PAYLOAD == 2) {

@@ -107,7 +107,7 @@ void TX38IT::DecodeFrame(byte *bytes, struct Frame *frame) {
 }
 
 
-String TX38IT::GetFhemDataString(struct Frame *frame) {
+String TX38IT::BuildFhemDataString(struct Frame *frame) {
   // Format
   //
   // OK 9 56 1   4   156 37     ID = 56  T: 18.0  H: 37  no NewBatt
@@ -239,21 +239,31 @@ void TX38IT::AnalyzeFrame(byte *data) {
 
 }
 
-bool TX38IT::TryHandleData(byte *data) {
+String TX38IT::GetFhemDataString(byte *data) {
   String fhemString = "";
 
   if ((data[0] & 0xC0) == 0xC0) {
     struct Frame frame;
     DecodeFrame(data, &frame);
     if (frame.IsValid) {
-      fhemString = GetFhemDataString(&frame);
-    }
-
-    if (fhemString.length() > 0) {
-      Serial.println(fhemString);
+      fhemString = BuildFhemDataString(&frame);
     }
   }
 
-  return fhemString.length() > 0;
+  return fhemString;
 
+}
+
+bool TX38IT::TryHandleData(byte *data) {
+  String fhemString = GetFhemDataString(data);
+
+  if (fhemString.length() > 0) {
+    Serial.println(fhemString);
+  }
+
+  return fhemString.length() > 0;
+}
+
+bool TX38IT::IsValidDataRate(unsigned long dataRate) {
+  return dataRate == 17241ul;
 }

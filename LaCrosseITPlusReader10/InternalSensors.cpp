@@ -21,7 +21,7 @@ void InternalSensors::SetAltitudeAboveSeaLevel(int altitude) {
 }
 
 
-String InternalSensors::GetFhemDataString(struct Frame *frame) {
+String InternalSensors::BuildFhemDataString(struct Frame *frame) {
   String result = "";
 
   // Check if data is in the valid range
@@ -81,7 +81,7 @@ String InternalSensors::GetFhemDataString(struct Frame *frame) {
   return result;
 }
 
- bool InternalSensors::TryHandleData(){
+ String InternalSensors::GetFhemDataString(){
   String fhemString = "";
 
   struct Frame frame;
@@ -97,19 +97,24 @@ String InternalSensors::GetFhemDataString(struct Frame *frame) {
       frame.Temperature = m_bmp.GetTemperature();
       frame.Pressure = m_bmp.GetPressure();
 
-
       if (frame.IsValid) {
-        fhemString = GetFhemDataString(&frame);
+        fhemString = BuildFhemDataString(&frame);
       }
 
-      if (fhemString.length() > 0) {
-        Serial.println(fhemString);
-      }
     }
 
   }
 
-  return fhemString.length() > 0;
-
+  return fhemString;
 }
+
+ bool InternalSensors::TryHandleData(){
+   String fhemString = GetFhemDataString();
+
+   if (fhemString.length() > 0) {
+     Serial.println(fhemString);
+   }
+
+   return fhemString.length() > 0;
+ }
 

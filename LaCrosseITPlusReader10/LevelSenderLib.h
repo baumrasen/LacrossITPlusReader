@@ -21,8 +21,12 @@ public:
   static void DecodeFrame(byte *data, struct Frame *frame);
   static void AnalyzeFrame(byte *data);
   static bool TryHandleData(byte *data);
-  static String GetFhemDataString(struct LevelSenderLib::Frame *frame);
+  static String GetFhemDataString(byte *data);
+  static bool IsValidDataRate(unsigned long dataRate);
+  
 
+protected:
+  static String BuildFhemDataString(struct LevelSenderLib::Frame *frame);
 
 };
 

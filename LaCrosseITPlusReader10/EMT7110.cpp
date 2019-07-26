@@ -129,7 +129,7 @@ bool EMT7110::CrcIsValid(byte data[]) {
 }
 
 
-String EMT7110::GetFhemDataString(struct Frame *frame) {
+String EMT7110::BuildFhemDataString(struct Frame *frame) {
   // Format
   // 
   // OK  EMT7110  84 81  8  237 0  13  0  2   1  6  1  -> ID 5451   228,5V   13mA   2W   2,62kWh
@@ -188,26 +188,35 @@ String EMT7110::GetFhemDataString(struct Frame *frame) {
   flags += frame->PairingFlag * 2;
   result += flags;
   
-
   return result;
 }
 
 
-bool EMT7110::TryHandleData(byte *data) {
+String EMT7110::GetFhemDataString(byte *data) {
   String fhemString = "";
 
   if (data[0] == 0x25 && (data[1] == 0x6A || data[1] == 0x2A || data[1] == 0x40)) {
     struct Frame frame;
     DecodeFrame(data, &frame);
     if (frame.IsValid) {
-      fhemString = GetFhemDataString(&frame);
+      fhemString = BuildFhemDataString(&frame);
     }
 
   }
+
+  return fhemString;
+}
+
+bool EMT7110::TryHandleData(byte *data) {
+  String fhemString = GetFhemDataString(data);
 
   if (fhemString.length() > 0) {
     Serial.println(fhemString);
   }
 
   return fhemString.length() > 0;
+}
+
+bool EMT7110::IsValidDataRate(unsigned long dataRate) {
+  return dataRate == 9579ul;
 }

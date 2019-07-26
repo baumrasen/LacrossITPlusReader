@@ -214,7 +214,7 @@ String AddByte(byte value, bool hasValue) {
 }
 
 
-String TX22IT::GetFhemDataString(struct Frame *frame) {
+String TX22IT::BuildFhemDataString(struct Frame *frame) {
   /* Format
    OK WS 60  1   4   193 52    2 88  4   101 15  20   ID=60  21.7°C  52%rH  600mm  Dir.: 112.5°  Wind:15m/s  Gust:20m/s 
    OK WS ID  XXX TTT TTT HHH RRR RRR DDD DDD SSS SSS GGG GGG FFF
@@ -312,7 +312,6 @@ float TX22IT::DecodeValue(byte q1, byte q2, byte q3) {
 
   return result;
 }
-
 
 void TX22IT::AnalyzeFrame(byte *data) {
   bool onlyValidData = true;
@@ -426,27 +425,36 @@ void TX22IT::AnalyzeFrame(byte *data) {
 
 }
 
-
-bool TX22IT::TryHandleData(byte *data) {
+String TX22IT::GetFhemDataString(byte *data) {
   String fhemString = "";
 
   if ((data[0] & 0xA0) == 0xA0) {
     struct Frame frame;
     DecodeFrame(data, &frame);
     if (frame.IsValid) {
-      fhemString = GetFhemDataString(&frame);
-    }
-
-    if (fhemString.length() > 0) {
-      Serial.println(fhemString);
+      fhemString = BuildFhemDataString(&frame);
     }
   }
 
-  return fhemString.length() > 0;
-
+  return fhemString;
 }
+
+bool TX22IT::TryHandleData(byte *data) {
+  String fhemString = GetFhemDataString(data);
+
+  if (fhemString.length() > 0) {
+    Serial.println(fhemString);
+  }
+ 
+  return fhemString.length() > 0;
+}
+
 
 
 void TX22IT::EncodeFrame(struct Frame *frame, byte bytes[4]) {
 
+}
+
+bool TX22IT::IsValidDataRate(unsigned long dataRate) {
+  return dataRate == 8842ul;
 }

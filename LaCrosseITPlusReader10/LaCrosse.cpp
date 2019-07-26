@@ -48,7 +48,7 @@ void LaCrosse::EncodeFrame(struct Frame *frame, byte bytes[5]) {
   float temp = frame->Temperature + 40.0;
   bytes[1] |= (int)(temp / 10);
   bytes[2] |= ((int)temp % 10) << 4;
-  bytes[2] |= (int)(fmod(temp, 1) * 10 + 0.5);
+  bytes[2] |= (int)((int)(temp * 10) % 10);
 
   // Humidity
   bytes[3] = frame->Humidity;
@@ -111,7 +111,7 @@ void LaCrosse::DecodeFrame(byte *bytes, struct Frame *frame) {
 }
 
 
-String LaCrosse::GetFhemDataString(struct Frame *frame) {
+String LaCrosse::BuildFhemDataString(struct Frame *frame) {
   // Format
   //
   // OK 9 56 1   4   156 37     ID = 56  T: 18.0  H: 37  no NewBatt
@@ -251,21 +251,32 @@ void LaCrosse::AnalyzeFrame(byte *data) {
 
 }
 
-bool LaCrosse::TryHandleData(byte *data) {
+String LaCrosse::GetFhemDataString(byte *data) {
   String fhemString = "";
 
   if ((data[0] & 0xF0) >> 4 == 9) {
     struct Frame frame;
     DecodeFrame(data, &frame);
     if (frame.IsValid) {
-      fhemString = GetFhemDataString(&frame);
+      fhemString = BuildFhemDataString(&frame);
     }
+  }
 
-    if (fhemString.length() > 0) {
-      Serial.println(fhemString);
-    }
+  return fhemString;
+}
+
+bool LaCrosse::TryHandleData(byte *data) {
+  String fhemString = GetFhemDataString(data);
+
+  if (fhemString.length() > 0) {
+    Serial.println(fhemString);
   }
 
   return fhemString.length() > 0;
 
+}
+
+
+bool LaCrosse::IsValidDataRate(unsigned long dataRate) {
+  return dataRate == 17241ul || dataRate == 9579ul;
 }

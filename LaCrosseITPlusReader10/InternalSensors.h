@@ -23,15 +23,15 @@ public:
   InternalSensors();
   bool TryInitializeBMP180();
   bool HasBMP180();
-  String GetFhemDataString(struct InternalSensors::Frame *frame);
   bool TryHandleData();
+  String GetFhemDataString();
   void SetAltitudeAboveSeaLevel(int altitude);
 
-private:
+protected:
   bool m_hasBMP180;
   BMP180 m_bmp;
   unsigned long m_lastMeasurement;
-
+  String BuildFhemDataString(struct InternalSensors::Frame *frame);
 };
 
 

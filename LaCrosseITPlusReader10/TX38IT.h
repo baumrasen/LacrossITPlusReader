@@ -26,10 +26,13 @@ public:
   static void DecodeFrame(byte *bytes, struct TX38IT::Frame *frame);
   static void AnalyzeFrame(byte *data);
   static bool TryHandleData(byte *data);
-  static String GetFhemDataString(struct TX38IT::Frame *frame);
+  static String GetFhemDataString(byte *data);
+  static bool IsValidDataRate(unsigned long dataRate);
+
+protected:
+  static String BuildFhemDataString(struct TX38IT::Frame *frame);
 
 };
-
 
 #endif
 

@@ -26,10 +26,14 @@ public:
   static void DecodeFrame(byte *bytes, struct LaCrosse::Frame *frame);
   static void AnalyzeFrame(byte *data);
   static bool TryHandleData(byte *data);
-  static String GetFhemDataString(struct LaCrosse::Frame *frame);
+  static String GetFhemDataString(byte *data);
+  static bool IsValidDataRate(unsigned long dataRate);
+  
+
+protected:
+  static String BuildFhemDataString(struct LaCrosse::Frame *frame);
 
 };
-
 
 #endif
 
