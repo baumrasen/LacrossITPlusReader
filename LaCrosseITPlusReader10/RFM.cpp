@@ -277,29 +277,7 @@ bool RFM::IsConnected() {
   return m_radioType != RFM::None;
 }
 
-RFM::RFM(byte mosi, byte miso, byte sck, byte ss, byte irq, bool isPrimary) {
-  m_mosi = mosi;
-  m_miso = miso;
-  m_sck = sck;
-  m_ss = ss;
-  m_irq = irq;
-
-  m_debug = false;
-  m_dataRate = 17241;
-  m_frequency = 868300;
-  m_payloadPointer = 0;
-  m_lastReceiveTime = 0;
-  m_payloadReady = false;
-
-
-  pinMode(m_mosi, OUTPUT);
-  pinMode(m_miso, INPUT);
-  pinMode(m_sck, OUTPUT);
-  pinMode(m_ss, OUTPUT);
-  pinMode(m_irq, INPUT);
-
-  digitalWrite(m_ss, HIGH);
-
+void RFM::Begin(bool isPrimary) {
   // No radio found until now
   m_radioType = RFM::None;
 
@@ -339,6 +317,28 @@ RFM::RFM(byte mosi, byte miso, byte sck, byte ss, byte irq, bool isPrimary) {
       }
     }
   }
+}
+
+RFM::RFM(byte mosi, byte miso, byte sck, byte ss) {
+  m_mosi = mosi;
+  m_miso = miso;
+  m_sck = sck;
+  m_ss = ss;
+
+  m_debug = false;
+  m_dataRate = 17241;
+  m_frequency = 868300;
+  m_payloadPointer = 0;
+  m_lastReceiveTime = 0;
+  m_payloadReady = false;
+
+
+  pinMode(m_mosi, OUTPUT);
+  pinMode(m_miso, INPUT);
+  pinMode(m_sck, OUTPUT);
+  pinMode(m_ss, OUTPUT);
+
+  digitalWrite(m_ss, HIGH);
 
 }
 

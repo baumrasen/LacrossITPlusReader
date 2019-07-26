@@ -15,8 +15,8 @@ public:
     RFM69CW = 2
   };
 
-  RFM(byte mosi, byte miso, byte sck, byte ss, byte irq, bool isPrimary = true);
-
+  RFM(byte mosi, byte miso, byte sck, byte ss);
+  void Begin(bool isPrimary);
   bool IsConnected();
   bool PayloadIsReady();
   void GetPayload(byte *data);
@@ -39,7 +39,7 @@ public:
 
 private:
   RadioType m_radioType;
-  byte m_mosi, m_miso, m_sck, m_ss, m_irq;
+  byte m_mosi, m_miso, m_sck, m_ss;
   bool m_debug;
   unsigned long m_dataRate;
   unsigned long m_frequency;

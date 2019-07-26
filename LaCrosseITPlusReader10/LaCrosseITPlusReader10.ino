@@ -10,7 +10,7 @@
 //            2014-03-14: I have this in SubVersion, so no need to do it here
 
 #define PROGNAME         "LaCrosseITPlusReader"
-#define PROGVERS         "10.1r" 
+#define PROGVERS         "10.1s" 
 
 #include "SPI.h"
 #include "RFM.h"
@@ -60,8 +60,8 @@ unsigned long lastToggleR1 = 0;
 unsigned long lastToggleR2 = 0;
 byte commandData[32];
 byte commandDataPointer = 0;
-RFM rfm1(11, 12, 13, 10, true);
-RFM rfm2(11, 12, 13, 8, false);
+RFM rfm1(11, 12, 13, 10);
+RFM rfm2(11, 12, 13, 8);
 
 JeeLink jeeLink;
 InternalSensors internalSensors;
@@ -519,15 +519,14 @@ void setup(void) {
 
   jeeLink.EnableLED(ENABLE_ACTIVITY_LED);
   lastToggleR1 = millis();
-  
-  ////rfm1.Begin();
-  ////rfm2.Begin();
 
+  rfm1.Begin(true);
   rfm1.InitializeLaCrosse();
   rfm1.SetFrequency(INITIAL_FREQ);
   rfm1.SetDataRate(DATA_RATE_R1);
   rfm1.EnableReceiver(true);
   
+  rfm2.Begin(false);
   if(rfm2.IsConnected()) {
     rfm2.InitializeLaCrosse();
     rfm2.SetFrequency(INITIAL_FREQ);
