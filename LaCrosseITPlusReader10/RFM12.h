@@ -13,6 +13,7 @@ private:
   byte m_mosi, m_miso, m_sck, m_ss, m_irq;
   bool m_debug;
   byte m_dataRate;
+  unsigned long m_frequency;
 
   void WaitForTransmitRegister();
   void SendByte(byte data);
@@ -26,6 +27,8 @@ public:
   byte GetByteFromFifo();
   void SetDataRate(DataRates dataRate);
   DataRates GetDataRate();
+  void SetFrequency(unsigned long kHz);
+  unsigned long GetFrequency();
   void EnableReceiver(bool enable);
   void EnableTransmitter(bool enable);
   static byte CalculateCRC(byte data[], int len);

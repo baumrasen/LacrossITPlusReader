@@ -11,7 +11,7 @@
 
 
 #define PROGNAME         "LaCrosseITPlusReader"
-#define PROGVERS         "10.1d"
+#define PROGVERS         "10.1e"
 
 #include "RFM12.h"
 #include "SensorBase.h"
@@ -32,6 +32,7 @@
 bool    DEBUG               = 0;                    // set to 1 to see debug messages
 RFM12::DataRates DATA_RATE  = RFM12::DataRate17241; // use one of the possible data rates
 uint16_t TOGGLE_DATA_RATE   = 0;                    // 0=no toggle, else interval in seconds
+unsigned long INITIAL_FREQ  = 868300;               // Initial frequency in kHz (5 kHz steps, 860480 ... 879515) 
 
 
 // --- Variables --------------------------------------------------------------
@@ -46,7 +47,7 @@ Transmitter transmitter(&rfm);
 
 
 static void HandleSerialPort(char c) {
-  static byte value;
+  static unsigned long value;
 
   if (c == ',') {
     commandData[commandDataPointer++] = value;
@@ -99,6 +100,10 @@ static void HandleSerialPort(char c) {
       commandData[commandDataPointer] = value;
       HandleCommandC(commandData, ++commandDataPointer);
       commandDataPointer = 0;
+      break;
+
+    case 'f':
+      rfm.SetFrequency(value);
       break;
 
     default:
@@ -207,6 +212,11 @@ void HandleCommandV() {
   else {
     Serial.print(DATA_RATE == RFM12::DataRate9579 ? "9.579 kbps" : "17.241 kbps");
   }
+
+  Serial.print(" / ");
+  Serial.print(rfm.GetFrequency());
+  Serial.print(" kHz");
+
   Serial.println(']');
 }
 
@@ -336,6 +346,7 @@ void setup(void) {
   lastToggle = millis();
   
   rfm.InitialzeLaCrosse();
+  rfm.SetFrequency(INITIAL_FREQ);
   rfm.SetDataRate(DATA_RATE);
   transmitter.Enable(false);
   rfm.EnableReceiver(true);

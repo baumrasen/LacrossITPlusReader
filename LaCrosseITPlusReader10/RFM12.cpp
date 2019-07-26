@@ -10,6 +10,7 @@ RFM12::RFM12(byte mosi, byte miso, byte sck, byte ss, byte irq) {
 
   m_debug = false;
   m_dataRate = 0x13;
+  m_frequency = 0;
 
   pinMode(m_mosi, OUTPUT);
   pinMode(m_miso, INPUT);
@@ -22,6 +23,16 @@ void RFM12::SetDataRate(DataRates dataRate) {
   m_dataRate = dataRate;
   RFM12::spi(0xC600 | m_dataRate);
 }
+
+void RFM12::SetFrequency(unsigned long kHz) {
+  m_frequency = kHz;
+  RFM12::spi(40960 + (m_frequency - 860000) / 5);
+}
+
+unsigned long RFM12::GetFrequency() {
+  return m_frequency;
+}
+
 
 RFM12::DataRates RFM12::GetDataRate() {
   return (RFM12::DataRates)m_dataRate;
@@ -167,7 +178,6 @@ void RFM12::InitialzeLaCrosse() {
 
   RFM12::spi(0x8208);              // RX/TX off
   RFM12::spi(0x80E8);              // 80e8 CONFIGURATION EL,EF,868 band,12.5pF  (iT+ 915  80f8)
-  RFM12::spi(0xA67c);              // FREQUENCY 868.300                         (a67c = 915.450 MHz)
   RFM12::spi(0xC600 | m_dataRate); // DATA RATE
   RFM12::spi(0xC26a);              // DATA FILTER
   RFM12::spi(0xCA12);              // FIFO AND RESET  8,SYNC,!ff,DR 
