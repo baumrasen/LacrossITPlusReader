@@ -66,6 +66,7 @@ void RFMxx::SetFrequency(unsigned long kHz) {
   else {
     RFMxx::spi16(40960 + (m_frequency - 860000) / 5);
   }
+  
 }
 
 void RFMxx::EnableReceiver(bool enable){
@@ -291,6 +292,10 @@ String RFMxx::GetRadioName() {
   }
 }
 
+bool RFMxx::IsConnected() {
+  return m_radioType != RFMxx::None;
+}
+
 RFMxx::RFMxx(byte mosi, byte miso, byte sck, byte ss, byte irq) {
   m_mosi = mosi;
   m_miso = miso;
@@ -314,12 +319,35 @@ RFMxx::RFMxx(byte mosi, byte miso, byte sck, byte ss, byte irq) {
 
   digitalWrite(m_ss, HIGH);
   
-  m_radioType = RFMxx::RFM12B;
+  // No radio found until now
+  m_radioType = RFMxx::None;
+
+  // Is there a RFM69 ?
   WriteReg(REG_PAYLOADLENGTH, 0xA);
   if (ReadReg(REG_PAYLOADLENGTH) == 0xA) {
     WriteReg(REG_PAYLOADLENGTH, 0x40);
     if (ReadReg(REG_PAYLOADLENGTH) == 0x40) {
       m_radioType = RFMxx::RFM69CW;
+    }
+  }
+
+  // Is there a RFM12 ?
+  if (m_radioType == RFMxx::None) {
+    spi16(0x820C); // Osc. + LBD
+
+    spi16(0xC04F); // LBD=3.7V
+    for (int i = 0; i < 100; i++) {
+      asm("nop");
+    }
+    if ((spi16(0x0000) & 0x0400) == 0x0400) {
+      spi16(0xC040);  // LBD = 2.2V
+      for (int i = 0; i < 100; i++) {
+        asm("nop");
+      }
+
+      if ((spi16(0x0000) & 0x0400) == 0) {
+        m_radioType = RFMxx::RFM12B;
+      }
     }
   }
 

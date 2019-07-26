@@ -10,12 +10,14 @@
 class RFMxx {
 public:
   enum RadioType {
+    None = 0,
     RFM12B = 1,
     RFM69CW = 2
   };
 
   RFMxx(byte mosi, byte miso, byte sck, byte ss, byte irq);
 
+  bool IsConnected();
   bool PayloadIsReady();
   void GetPayload(byte *data);
   void InitialzeLaCrosse();

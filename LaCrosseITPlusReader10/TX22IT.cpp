@@ -1,10 +1,10 @@
 #include "TX22IT.h"
 
 /*
-TX22-IT  8842 kbks  868.3 MHz
+TX22-IT  8842 kbps  868.3 MHz
 -----------------------------
 Message Format:
-SSSS.DDDD DDAE.QQQQ TTTT.VVVV VVVV.VVVV ... CCCC.CCCC 
+SSSS.DDDD DDAE.LQQQ TTTT.VVVV VVVV.VVVV ... CCCC.CCCC 
 Data - organized in nibbles - are structured as follows (example with blanks added for clarity):
 a 5a 5 0 628 1 033 2 000 3 e00 4 000 bd
 
@@ -12,7 +12,8 @@ data always starts with "a"
 from next 1.5 nibbles (here 5a) the 6 msb are identifier of transmitter,
 bit 1 indicates acquisition/synchronizing phase
 bit 0 will be 1 in case of error
-next nibble (here 5) is count of quartets to betransmitted
+next bit is the low battery flag
+next three bits (here 5) is count of quartets transmitted
 up to 5 quartets of data follow
 each quartet starts with a type indicator (here 0,1,2,3,4)
 0: temperature: 3 nibbles bcd coded tenth of °C plus 400 (here 628-400 = 22.8°C)
@@ -29,7 +30,7 @@ data strings contain only a few ( 1 up to 3) quartets, so data strings are not a
                     |--- acquisition/synchronizing phase
                     ||-- Error
         "A"  -Addr.-|| Nbr.Q
-        SSSS.DDDD DDAE.QQQQ  T          H          R          W          G           CRC
+        SSSS.DDDD DDAE.LQQQ  T          H          R          W          G           CRC
 TX22IT [A    1    D    3                1  0 7 2   2  0 1 B   3  C F E               C4    ] CRC:OK S:A ID:7 NewBatt:0 Error:1 Temp:---   Hum:72  Rain:27.00 Wind:25.40m/s from:270.00 Gust:---      CRC:C4
 TX22IT [A    1    D    2                           2  0 1 B   3  D F E               3A    ] CRC:OK S:A ID:7 NewBatt:0 Error:1 Temp:---   Hum:--- Rain:27.00 Wind:25.40m/s from:292.50 Gust:---      CRC:3A
 TX22IT [A    1    D    2                           2  0 1 B   3  E F E               17    ] CRC:OK S:A ID:7 NewBatt:0 Error:1 Temp:---   Hum:--- Rain:27.00 Wind:25.40m/s from:315.00 Gust:---      CRC:17
@@ -136,8 +137,9 @@ void TX22IT::DecodeFrame(byte *bytes, struct Frame *frame) {
 
     frame->NewBatteryFlag = (bytes[1] & 0b00100000) > 0;
     frame->ErrorFlag = (bytes[1] & 0b00010000) > 0;
+    frame->LowBatteryFlag = (bytes[1] & 0xF) >> 3;
 
-    byte ct = bytes[1] & 0xF;
+    byte ct = bytes[1] & 0x7;
     for (int i = 0; i < ct; i++) {
       byte byte1 = bytes[2 + i * 2];
       byte byte2 = bytes[3 + i * 2];
@@ -297,7 +299,7 @@ String TX22IT::GetFhemDataString(struct Frame *frame) {
 
 
 byte TX22IT::GetFrameLength(byte data[]) {
-  return 3 + 2 * (data[1] & 0xF);
+  return 3 + 2 * (data[1] & 0x7);
 }
 
 
