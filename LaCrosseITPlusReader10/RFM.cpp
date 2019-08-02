@@ -159,6 +159,7 @@ void RFM::InitializeLaCrosse() {
     /* 0x19 */ WriteReg(REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_2);
     /* 0x28 */ WriteReg(REG_IRQFLAGS2, RF_IRQFLAGS2_FIFOOVERRUN);
     /* 0x29 */ WriteReg(REG_RSSITHRESH, 220);
+               WriteReg(REG_PREAMBLELSB, 0x05);  // default is: 0x03 (3x 0xAA)
     /* 0x2E */ WriteReg(REG_SYNCCONFIG, RF_SYNC_ON | RF_SYNC_FIFOFILL_AUTO | RF_SYNC_SIZE_2 | RF_SYNC_TOL_0);
     /* 0x2F */ WriteReg(REG_SYNCVALUE1, 0x2D);
     /* 0x30 */ WriteReg(REG_SYNCVALUE2, 0xD4);
