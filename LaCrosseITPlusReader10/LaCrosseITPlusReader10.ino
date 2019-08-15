@@ -41,7 +41,7 @@
 #define ENABLE_ACTIVITY_LED    1         // <n>a     set to 0 if the blue LED bothers
 unsigned long DATA_RATE_S1   = 17241ul;  // <n>c     use one of the possible data rates (for transmit on RFM #1)
 bool DEBUG                   = 0;        // <n>d     set to 1 to see debug messages
-unsigned long INITIAL_FREQ   = 868300;   // <n>f     initial frequency in kHz (5 kHz steps, 860480 ... 879515) 
+unsigned long INITIAL_FREQ   = 868345;   // <n>f     initial frequency in kHz (5 kHz steps, 860480 ... 879515) 
 int ALTITUDE_ABOVE_SEA_LEVEL = 0;        // <n>h     altituide above sea level
 byte TOGGLE_MODE_R1          = 3;        // <n>m     bits 1: 17.241 kbps, 2 : 9.579 kbps, 4 : 8.842 kbps (for RFM #1)
 byte TOGGLE_MODE_R2          = 3;        // <n>M     bits 1: 17.241 kbps, 2 : 9.579 kbps, 4 : 8.842 kbps (for RFM #2)
