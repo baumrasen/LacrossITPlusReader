@@ -310,7 +310,7 @@ void HandleCommandX(unsigned long value) {
   //  byte payload[18];
   //  payload[0] = 0x24;
   //  payload[1] = 0x50;
-  //  payload[2] = 0x67;
+  //  payload[2] = 0x6
   //  payload[3] = 0xe2;
   //  payload[4] = 0x87;
   //  payload[5] = 0x41;

@@ -1,0 +1,7 @@
+{
+    "programmer": "AVRISP mkII",
+    "board": "arduino:avr:uno",
+    "port": "COM4",
+    "output": "../build",
+    "sketch": "LaCrosseITPlusReader10.ino"
+}
