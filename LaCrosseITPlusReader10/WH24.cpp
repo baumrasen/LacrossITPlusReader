@@ -77,6 +77,7 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
   frame->HasWindGust = true;
   frame->HasPressure = false;
   frame->HasUV = true;
+  frame->HasLight = true;
   frame->HasstrikesTotal = false;
   frame->HasstrikesDistance = false;
 
@@ -207,12 +208,17 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     int uv_index   = 0;
     while (uv_index < 13 && uvi_upper[uv_index] < uv_raw) ++uv_index; 
     frame->UV =  uv_index;
+    frame->Light =  light_lux;
 
             if (m_debug) {
+
+          Serial.print("   uv_raw: ");
+          Serial.print(uv_raw,1);
+
           Serial.print("   uv: ");
           Serial.print(frame->UV);
 
-          Serial.print("   lux: ");
+          Serial.print("   light: ");
           Serial.println(light_lux);
         }
 
@@ -226,7 +232,7 @@ String WH24::AnalyzeFrame(byte *data) {
 
   byte frameLength = WH24::FRAME_LENGTH;
 
-  return WSBase::AnalyzeFrame(data, &frame, frameLength, "WH24");
+  return WSBase::AnalyzeFrame(data, &frame, frameLength, "FineOffset");
 }
 
 String WH24::GetFhemDataString(byte *data) {
@@ -234,7 +240,7 @@ String WH24::GetFhemDataString(byte *data) {
   struct Frame frame2;
   DecodeFrame(data, &frame2);
   if (frame2.IsValid) {
-    fhemString2 = BuildFhemDataString(&frame2, 5);
+    fhemString2 = BuildFhemDataString(&frame2, 8);
     // fhemString2 = BuildKVDataString(&frame2, 7);
   }
   return fhemString2;

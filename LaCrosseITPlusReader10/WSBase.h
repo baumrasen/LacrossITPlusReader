@@ -23,10 +23,11 @@ public:
     bool  HasWindGust;
     bool  HasPressure;
     bool  HasUV;
+    bool  HasLight;
     bool  HasstrikesTotal;
     bool  HasstrikesDistance;
 
-    float Temperature;    // �C 
+    float Temperature;    // °C 
     byte  Humidity;       // %rH
     float Rain;           // mm
     float WindDirection;  // Degree
@@ -34,6 +35,7 @@ public:
     float  WindGust;      // m/s
     int  Pressure;        // hPa
     float UV;
+    float Light;          // lux
     int16_t strikesDistance ;
     uint16_t strikesTotal ;
   };

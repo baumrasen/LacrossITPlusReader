@@ -2,24 +2,26 @@
 
 String WSBase::BuildFhemDataString(struct Frame *frame, byte sensorType) {
   /* Format
-  OK WS 60  1   4   193 52    2 88  4   101 15  20   ID=60  21.7�C  52%rH  600mm  Dir.: 112.5�  Wind:15m/s  Gust:20m/s
-  OK WS ID  XXX TTT TTT HHH RRR RRR DDD DDD SSS SSS GGG GGG FFF PPP PPP
-  |  |  |   |   |   |   |   |   |   |   |   |   |   |   |   |-- Flags *
-  |  |  |   |   |   |   |   |   |   |   |   |   |   |   |------ WindGust * 10 LSB (0.0 ... 50.0 m/s)           FF/FF = none
-  |  |  |   |   |   |   |   |   |   |   |   |   |   |---------- WindGust * 10 MSB
-  |  |  |   |   |   |   |   |   |   |   |   |   |-------------- WindSpeed  * 10 LSB(0.0 ... 50.0 m/s)          FF/FF = none
-  |  |  |   |   |   |   |   |   |   |   |   |------------------ WindSpeed  * 10 MSB
-  |  |  |   |   |   |   |   |   |   |   |---------------------- WindDirection * 10 LSB (0.0 ... 365.0 Degrees) FF/FF = none
-  |  |  |   |   |   |   |   |   |   |-------------------------- WindDirection * 10 MSB
-  |  |  |   |   |   |   |   |   |------------------------------ Rain LSB (0 ... 9999 mm)                       FF/FF = none
-  |  |  |   |   |   |   |   |---------------------------------- Rain MSB
-  |  |  |   |   |   |   |-------------------------------------- Humidity (1 ... 99 %rH)                        FF = none
-  |  |  |   |   |   |------------------------------------------ Temp * 10 + 1000 LSB (-40 ... +60 �C)          FF/FF = none
-  |  |  |   |   |---------------------------------------------- Temp * 10 + 1000 MSB
-  |  |  |   |-------------------------------------------------- Sensor type (1=TX22IT, 2=NodeSensor, 3=WS1080)
-  |  |  |------------------------------------------------------ Sensor ID (1 ... 63)
-  |  |--------------------------------------------------------- fix "WS"
-  |------------------------------------------------------------ fix "OK"
+  OK WS 60  1   4   193 52    2 88  4   101 15  20   ID=60  21.7°C  52%rH  600mm  Dir.: 112.5°  Wind:15m/s  Gust:20m/s
+  OK WS ID  XXX TTT TTT HHH RRR RRR DDD DDD SSS SSS GGG GGG UUU VVV FFF PPP PPP
+  |  |  |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |------ Flags *
+  |  |  |   |   |   |   |   |   |   |   |   |   |   |   |   |   |-- Light (??? ... ??? lux)                        FF/FF = none
+  |  |  |   |   |   |   |   |   |   |   |   |   |   |   |   |------ UV Index (0 ... 13)                            FF/FF = none
+  |  |  |   |   |   |   |   |   |   |   |   |   |   |   |---------- WindGust * 10 LSB (0.0 ... 50.0 m/s)           FF/FF = none
+  |  |  |   |   |   |   |   |   |   |   |   |   |   |-------------- WindGust * 10 MSB
+  |  |  |   |   |   |   |   |   |   |   |   |   |------------------ WindSpeed  * 10 LSB(0.0 ... 50.0 m/s)          FF/FF = none
+  |  |  |   |   |   |   |   |   |   |   |   |---------------------- WindSpeed  * 10 MSB
+  |  |  |   |   |   |   |   |   |   |   |-------------------------- WindDirection * 10 LSB (0.0 ... 365.0 Degrees) FF/FF = none
+  |  |  |   |   |   |   |   |   |   |------------------------------ WindDirection * 10 MSB
+  |  |  |   |   |   |   |   |   |---------------------------------- Rain LSB (0 ... 9999 mm)                       FF/FF = none
+  |  |  |   |   |   |   |   |-------------------------------------- Rain MSB
+  |  |  |   |   |   |   |------------------------------------------ Humidity (1 ... 99 %rH)                        FF = none
+  |  |  |   |   |   |---------------------------------------------- Temp * 10 + 1000 LSB (-40 ... +60 �C)          FF/FF = none
+  |  |  |   |   |-------------------------------------------------- Temp * 10 + 1000 MSB
+  |  |  |   |------------------------------------------------------ Sensor type (1=TX22IT, 2=NodeSensor, 3=WS1080)
+  |  |  |---------------------------------------------------------- Sensor ID (1 ... 63)
+  |  |------------------------------------------------------------- fix "WS"
+  |---------------------------------------------------------------- fix "OK"
 
   * Flags: 128  64  32  16  8   4   2   1
   |   |   |
@@ -66,6 +68,14 @@ String WSBase::BuildFhemDataString(struct Frame *frame, byte sensorType) {
     // add gust
     pBuf += AddWord(frame->WindGust * 10, frame->HasWindGust);
 
+    if (frame->HasUV && (frame->UV < 0 || frame->UV > 13)) {
+      isValid = false;
+    }
+    // add uvi
+    pBuf += AddWord(frame->UV, frame->HasUV);
+
+    // add light
+    pBuf += AddWord(frame->Light, frame->HasLight);
 
     // add Flags
     byte flags = 0;
@@ -158,90 +168,95 @@ String WSBase::AnalyzeFrame(byte *data, Frame *frame, byte frameLength, String p
     result += prefix;
     
     // Start
-    result += " S:";
+    result += " S";
     result += String(frame->Header, HEX);
 
     // Sensor ID
-    result += " ID:";
+    result += " ID";
     result += String(frame->ID, HEX);
 
     // New battery flag
-    result += " nBa:";
+    result += " nBa";
     result += String(frame->NewBatteryFlag, DEC);
 
     // Low battery flag
-    result += " lBa:";
+    result += " lBa";
     result += String(frame->LowBatteryFlag, DEC);
 
     // Error flag
-    result += " Error:";
+    result += " Er";
     result += String(frame->ErrorFlag, DEC);
 
     // Temperature
-    result += " t:";
+    result += " t";
     if (frame->HasTemperature) {
       result += String(frame->Temperature, 1);
     }
     else {
-      result += "---";
+      result += "-";
     }
 
     // Humidity
-    result += " h:";
+    result += " h";
     if (frame->HasHumidity) {
-      result += String(frame->Humidity, 1);
-      result += "%";
+      result += String(frame->Humidity);
     }
     else {
-      result += "---";
+      result += "-";
     }
 
     // Rain
-    result += " r:";
+    result += " r";
     if (frame->HasRain) {
       result += String(frame->Rain, 2);
-      result += "mm";
     }
     else {
-      result += "---";
+      result += "-";
     }
 
     // Wind speed
-    result += " w:";
+    result += " w";
     if (frame->HasWindSpeed) {
-      result += String(frame->WindSpeed, 1);
-      result += "m/s";
+      result += String(frame->WindSpeed, 1);      
     }
     else {
-      result += "---";
+      result += "-";
     }
 
     // Wind direction
-    result += " wd:";
+    result += " wd";
     if (frame->HasWindDirection) {
       result += String(frame->WindDirection, 0);
     }
     else {
-      result += "---";
+      result += "-";
     }
 
     // Wind gust
-    result += " wg:";
+    result += " wg";
     if (frame->HasWindGust) {
       result += String(frame->WindGust, 1);
-      result += " m/s";
     }
     else {
-      result += "---";
+      result += "-";
     }
 
-    // UVI
-    result += " uv:";
+    // UVindex
+    result += " uv";
     if (frame->HasUV) {
       result += String(frame->UV, 1);
     }
     else {
-      result += "---";
+      result += "-";
+    }
+
+    // Light
+    result += " li";
+    if (frame->HasLight) {
+      result += String(frame->Light, 1);
+    }
+    else {
+      result += "-";
     }
 
     // CRC
@@ -280,6 +295,7 @@ String WSBase::BuildKVDataString(struct Frame *frame, byte sensorType) {
     case 5: sensorTypeName = "WH25"; break;
     case 6: sensorTypeName = "W136"; break;
     case 7: sensorTypeName = "WH24"; break;
+    case 8: sensorTypeName = "FineOffset"; break;
   }
 
 

@@ -508,7 +508,7 @@ void HandleReceivedData(RFM *rfm) {
     ////EMT7110::AnalyzeFrame(payload);
     ////TX38IT::AnalyzeFrame(payload);
     ////CustomSensor::AnalyzeFrame(payload);
-    Serial.println(WH24::AnalyzeFrame(payload));
+    Serial.print(WH24::AnalyzeFrame(payload));
     Serial.println();
   }
   else if (PASS_PAYLOAD == 1) {
