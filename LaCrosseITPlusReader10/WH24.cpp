@@ -99,6 +99,10 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     
  //   if (crc != bytes[15] || checksum != bytes[16]) {
     if (crc != bytes[15]) {
+        if (m_debug) {
+          Serial.print("## CRC FAIL ### - WH24: ");
+          Serial.println(crc, HEX);
+        }
         frame->IsValid = false;
     } else {
         frame->IsValid = true;
@@ -108,13 +112,34 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
   if (frame->IsValid) {
     
     frame->ID = (bytes[1]);
-    // Temperature (�C)
+
+    // int low_battery     = (bytes[3] & 0x08) >> 3;
+    int low_battery     = (bytes[3] & 0x08) >> 3;
+    frame->LowBatteryFlag = low_battery;
+
+            if (m_debug) {
+          Serial.print("WH24 - id: ");
+          Serial.print(frame->ID);
+
+          Serial.print("   batt: ");
+          Serial.print(frame->LowBatteryFlag);
+        }
+        
+    // Temperature (°C)
     int temp = ((bytes[3] & 0x07) << 8) | bytes[4]; // 0x7ff if invalid
     frame->Temperature = ((temp * 0.1) - 40.0);     // range -40.0-60.0 C
     // Humidity (%rH)
     frame->Humidity = bytes[5];                     // 0xff if invalid
    // frame->Pressure = ((bytes[4] << 8) | bytes[5]) / 10.0;
    
+        if (m_debug) {
+          Serial.print("   t: ");
+          Serial.print(frame->Temperature);
+
+          Serial.print("   h: ");
+          Serial.print(frame->Humidity);
+        }
+
     // Wind speed (m/s)
     int wind_speed_raw  = bytes[6] | (bytes[3] & 0x10) << 4; // 0x1ff if invalid
      float wind_speed_factor, rain_cup_count;
@@ -135,6 +160,14 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     // Wind gust is unscaled, multiply by wind speed factor 1.12 m/s
     frame->WindGust = gust_speed_raw * wind_speed_factor;
     
+            if (m_debug) {
+          Serial.print("   ws: ");
+          Serial.print(frame->WindSpeed);
+
+          Serial.print("   wg: ");
+          Serial.print(frame->WindGust);
+        }
+
     //  Rain 
     int rainfall_raw    = bytes[8] << 8 | bytes[9]; // rain tip counter
     frame->Rain = rainfall_raw * rain_cup_count; // each tip is 0.3mm / 0.254mm
@@ -142,6 +175,14 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     // Wind direction (degree  N=0, NNE=22.5, S=180, ... )
     frame->WindDirection = bytes[2] | (bytes[3] & 0x80) << 1; // range 0-359 deg, 0x1ff if invalid
     
+        if (m_debug) {
+          Serial.print("   r: ");
+          Serial.print(frame->Rain);
+
+          Serial.print("   wd: ");
+          Serial.print(frame->WindDirection);
+        }
+
     int uv_raw          = bytes[10] << 8 | bytes[11];               // range 0-20000, 0xffff if invalid
     int light_raw       = bytes[12] << 16 | bytes[13] << 8 | bytes[14]; // 0xffffff if invalid
     float light_lux     = light_raw * 0.1; // range 0.0-300000.0lux
@@ -167,6 +208,14 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     while (uv_index < 13 && uvi_upper[uv_index] < uv_raw) ++uv_index; 
     frame->UV =  uv_index;
 
+            if (m_debug) {
+          Serial.print("   uv: ");
+          Serial.print(frame->UV);
+
+          Serial.print("   lux: ");
+          Serial.println(light_lux);
+        }
+
   }
 }
 
@@ -185,8 +234,8 @@ String WH24::GetFhemDataString(byte *data) {
   struct Frame frame2;
   DecodeFrame(data, &frame2);
   if (frame2.IsValid) {
-    //fhemString2 = BuildFhemDataString(&frame2, 5);
-    fhemString2 = BuildKVDataString(&frame2, 7);
+    fhemString2 = BuildFhemDataString(&frame2, 5);
+    // fhemString2 = BuildKVDataString(&frame2, 7);
   }
   return fhemString2;
 }

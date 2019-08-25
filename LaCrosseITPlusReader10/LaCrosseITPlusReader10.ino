@@ -213,6 +213,8 @@ void SetDebugMode(boolean mode) {
   DEBUG = mode;
   // LevelSenderLib::SetDebugMode(mode);
   // WT440XH::SetDebugMode(mode);
+  WSBase::SetDebugMode(mode);
+  WH24::SetDebugMode(mode);
   rfm1.SetDebugMode(mode);
   rfm2.SetDebugMode(mode);
 
@@ -506,7 +508,8 @@ void HandleReceivedData(RFM *rfm) {
     ////EMT7110::AnalyzeFrame(payload);
     ////TX38IT::AnalyzeFrame(payload);
     ////CustomSensor::AnalyzeFrame(payload);
-    ////Serial.println();
+    Serial.println(WH24::AnalyzeFrame(payload));
+    Serial.println();
   }
   else if (PASS_PAYLOAD == 1) {
     jeeLink.Blink(1);

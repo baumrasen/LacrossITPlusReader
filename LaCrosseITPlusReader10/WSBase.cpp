@@ -127,26 +127,36 @@ float WSBase::DecodeValue(byte q1, byte q2, byte q3) {
 }
 
 String WSBase::AnalyzeFrame(byte *data, Frame *frame, byte frameLength, String prefix) {
+  
+  String hexinfo;
   String result;
-
+  
   // Show the raw data bytes
-  result += prefix;
-  result += " [";
+  hexinfo += prefix;
+
+  hexinfo += " [";
   for (int i = 0; i < frameLength; i++) {
-    result += String(data[i], HEX);
+    hexinfo += String(data[i], HEX);
     if (i < frameLength) {
-      result += " ";
+      hexinfo += " ";
     }
   }
-  result += "]";
+  hexinfo += "]";
 
   // CRC
   if (!frame->IsValid) {
-    result += " CRC:WRONG";
+    hexinfo += " CRC:WRONG";
+
+    if (!m_debug) {
+      Serial.println(hexinfo);    
+    }
+
   }
   else {
-    result += " CRC:OK";
+    hexinfo += " CRC:OK";
 
+    result += prefix;
+    
     // Start
     result += " S:";
     result += String(frame->Header, HEX);
@@ -156,11 +166,11 @@ String WSBase::AnalyzeFrame(byte *data, Frame *frame, byte frameLength, String p
     result += String(frame->ID, HEX);
 
     // New battery flag
-    result += " NewBatt:";
+    result += " nBa:";
     result += String(frame->NewBatteryFlag, DEC);
 
     // Low battery flag
-    result += " LowBatt:";
+    result += " lBa:";
     result += String(frame->LowBatteryFlag, DEC);
 
     // Error flag
@@ -168,36 +178,38 @@ String WSBase::AnalyzeFrame(byte *data, Frame *frame, byte frameLength, String p
     result += String(frame->ErrorFlag, DEC);
 
     // Temperature
-    result += " Temp:";
+    result += " t:";
     if (frame->HasTemperature) {
-      result += frame->Temperature;
+      result += String(frame->Temperature, 1);
     }
     else {
       result += "---";
     }
 
     // Humidity
-    result += " Hum:";
+    result += " h:";
     if (frame->HasHumidity) {
-      result += frame->Humidity;
+      result += String(frame->Humidity, 1);
+      result += "%";
     }
     else {
       result += "---";
     }
 
     // Rain
-    result += " Rain:";
+    result += " r:";
     if (frame->HasRain) {
-      result += frame->Rain;
+      result += String(frame->Rain, 2);
+      result += "mm";
     }
     else {
       result += "---";
     }
 
     // Wind speed
-    result += " Wind:";
+    result += " w:";
     if (frame->HasWindSpeed) {
-      result += frame->WindSpeed;
+      result += String(frame->WindSpeed, 1);
       result += "m/s";
     }
     else {
@@ -205,19 +217,28 @@ String WSBase::AnalyzeFrame(byte *data, Frame *frame, byte frameLength, String p
     }
 
     // Wind direction
-    result += " from:";
+    result += " wd:";
     if (frame->HasWindDirection) {
-      result += frame->WindDirection;
+      result += String(frame->WindDirection, 0);
     }
     else {
       result += "---";
     }
 
     // Wind gust
-    result += " Gust:";
+    result += " wg:";
     if (frame->HasWindGust) {
-      result += frame->WindGust;
+      result += String(frame->WindGust, 1);
       result += " m/s";
+    }
+    else {
+      result += "---";
+    }
+
+    // UVI
+    result += " uv:";
+    if (frame->HasUV) {
+      result += String(frame->UV, 1);
     }
     else {
       result += "---";
@@ -227,6 +248,10 @@ String WSBase::AnalyzeFrame(byte *data, Frame *frame, byte frameLength, String p
     result += " CRC:";
     result += String(frame->CRC, HEX);
 
+  }
+
+  if (m_debug) {
+    Serial.println(hexinfo);    
   }
 
   return result;
@@ -240,7 +265,7 @@ String WSBase::BuildKVDataString(struct Frame *frame, byte sensorType) {
 
   String pBuf = "";
   String pBuf2 = "";
-   String pBuf3;
+  String pBuf3;
   String sensorTypeName = "";
 
   // Check if data is in the valid range
