@@ -34,7 +34,7 @@ public:
     float  WindSpeed;     // m/s
     float  WindGust;      // m/s
     int  Pressure;        // hPa
-    float UV;
+    int UV;
     float Light;          // lux
     int16_t strikesDistance ;
     uint16_t strikesTotal ;

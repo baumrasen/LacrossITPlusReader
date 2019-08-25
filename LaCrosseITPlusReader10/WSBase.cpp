@@ -72,7 +72,7 @@ String WSBase::BuildFhemDataString(struct Frame *frame, byte sensorType) {
       isValid = false;
     }
     // add uvi
-    pBuf += AddWord(frame->UV, frame->HasUV);
+    pBuf += AddByte(frame->UV, frame->HasUV);
 
     // add light
     pBuf += AddWord(frame->Light, frame->HasLight);
