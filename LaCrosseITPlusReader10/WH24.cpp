@@ -56,6 +56,12 @@ unsigned byte, bit;
  * LL LL LL = light value
  * CC = CRC checksum of the 15 data bytes
  * BB = Bitsum (sum without carry, XOR) of the 16 data bytes
+ * 
+ * Example:
+ * End receiving, HEX raw data: 24 9F AD 2 90 3C 0 0 0 C 0 9 0 21 E8 1B 
+ * WH24 - id: 159   batt: 0   t: 25.60   h: 60   ws: 0.00   wg: 0.00   r: 3.05   wd: 173.00   uv_raw: 9   uv: 0   light: 868.00
+ * OK WS 159 8 4 232 60 0 3 6 194 0 0 0 0 0 3 100 0
+ * 
  */
 #define MODEL_WH24 24 /* internal identifier for model WH24, family code is always 0x24 */
 #define MODEL_WH65B 65 /* internal identifier for model WH65B, family code is always 0x24 */

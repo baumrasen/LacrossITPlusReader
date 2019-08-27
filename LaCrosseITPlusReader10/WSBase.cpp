@@ -244,7 +244,7 @@ String WSBase::AnalyzeFrame(byte *data, Frame *frame, byte frameLength, String p
     // UVindex
     result += " uv";
     if (frame->HasUV) {
-      result += String(frame->UV, 1);
+      result += String(frame->UV);
     }
     else {
       result += "-";
