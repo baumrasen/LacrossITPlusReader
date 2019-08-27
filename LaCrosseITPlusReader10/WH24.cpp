@@ -213,19 +213,28 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     int uvi_upper[] = {432, 851, 1210, 1570, 2017, 2450, 2761, 3100, 3512, 3918, 4277, 4650, 5029};
     int uv_index   = 0;
     while (uv_index < 13 && uvi_upper[uv_index] < uv_raw) ++uv_index; 
-    frame->UV =  uv_index;
-    frame->Light =  light_lux;
+    frame->UV =  uv_raw;
+    frame->Light =  light_raw;
 
             if (m_debug) {
-
+          
           Serial.print("   uv_raw: ");
           Serial.print(uv_raw,1);
 
+          Serial.print("   light_raw: ");
+          Serial.print(light_raw,1);
+          Serial.print("   12-16: ");
+          Serial.print(bytes[12]);
+          Serial.print("   13-8: ");
+          Serial.print(bytes[13]);
+          Serial.print("   14 : ");
+          Serial.print(bytes[14]);
+ 
           Serial.print("   uv: ");
           Serial.print(frame->UV);
 
           Serial.print("   light: ");
-          Serial.println(light_lux);
+          Serial.println(light_lux,1);
         }
 
   }
