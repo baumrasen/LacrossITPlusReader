@@ -31,11 +31,15 @@ public:
     byte  Humidity;       // %rH
     float Rain;           // mm
     float WindDirection;  // Degree
-    float  WindSpeed;     // m/s
-    float  WindGust;      // m/s
-    int  Pressure;        // hPa
+    float WindSpeed;      // m/s
+    float WindGust;       // m/s
+    int Pressure;         // hPa
     int UV;
-    float Light;          // lux
+    // long Light;            // lux
+    byte  Light_b1;
+    byte  Light_b2;
+    byte  Light_b3;
+
     int16_t strikesDistance ;
     uint16_t strikesTotal ;
   };
@@ -44,6 +48,7 @@ public:
 protected:
   static String BuildKVDataString(struct Frame *frame, byte sensorType);
   static String BuildFhemDataString(struct Frame *frame, byte sensorType);
+  static String AddLongWord(word value, bool hasValue);
   static String AddWord(word value, bool hasValue);
   static String AddByte(byte value, bool hasValue);
   static float DecodeValue(byte q1, byte q2, byte q3);

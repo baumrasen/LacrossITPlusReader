@@ -68,15 +68,6 @@ String WSBase::BuildFhemDataString(struct Frame *frame, byte sensorType) {
     // add gust
     pBuf += AddWord(frame->WindGust * 10, frame->HasWindGust);
 
-    if (frame->HasUV && (frame->UV < 0 || frame->UV > 13)) {
-      isValid = false;
-    }
-    // add uvi
-    pBuf += AddByte(frame->UV, frame->HasUV);
-
-    // add light
-    pBuf += AddWord(frame->Light, frame->HasLight);
-
     // add Flags
     byte flags = 0;
     if (frame->NewBatteryFlag) {
@@ -90,6 +81,18 @@ String WSBase::BuildFhemDataString(struct Frame *frame, byte sensorType) {
     }
     pBuf += AddByte(flags, true);
 
+    if (frame->HasUV && (frame->UV < 0 || frame->UV > 13)) {
+      isValid = false;
+    }
+    // add uvi
+    pBuf += AddByte(frame->UV, frame->HasUV);
+
+    // add light
+    // pBuf += AddLongWord(frame->Light, frame->HasLight);
+    pBuf += AddByte(frame->Light_b1, frame->HasLight);
+    pBuf += AddByte(frame->Light_b2, frame->HasLight);
+    pBuf += AddByte(frame->Light_b3, frame->HasLight);
+
     // add pressure
     if (frame->HasPressure) {
       pBuf += " ";
@@ -102,6 +105,22 @@ String WSBase::BuildFhemDataString(struct Frame *frame, byte sensorType) {
   return pBuf;
 }
 
+String WSBase::AddLongWord(word value, bool hasValue) {
+  String result;
+
+  if (!hasValue) {
+    value = 0xFFFFFF;
+  }
+
+  result += ' ';
+  result += (byte)(value >> 16);
+  result += ' ';
+  result += (byte)(value >> 8);
+  result += ' ';
+  result += (byte)(value);
+
+  return result;
+}
 
 String WSBase::AddWord(word value, bool hasValue) {
   String result;
@@ -253,7 +272,12 @@ String WSBase::AnalyzeFrame(byte *data, Frame *frame, byte frameLength, String p
     // Light
     result += " li";
     if (frame->HasLight) {
-      result += String(frame->Light, 1);
+      // result += String(frame->Light);
+      result += String(frame->Light_b1,HEX);
+      result += " ";
+      result += String(frame->Light_b2,HEX);
+      result += " ";
+      result += String(frame->Light_b3,HEX);
     }
     else {
       result += "-";

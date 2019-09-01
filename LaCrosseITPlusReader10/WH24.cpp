@@ -124,7 +124,7 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     int low_battery     = (bytes[3] & 0x08) >> 3;
     frame->LowBatteryFlag = low_battery;
 
-            if (m_debug) {
+        if (m_debug) {
           Serial.print("WH24 - id: ");
           Serial.print(frame->ID);
 
@@ -149,7 +149,7 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
 
     // Wind speed (m/s)
     int wind_speed_raw  = bytes[6] | (bytes[3] & 0x10) << 4; // 0x1ff if invalid
-     float wind_speed_factor, rain_cup_count;
+    float wind_speed_factor, rain_cup_count;
     // Wind speed factor is 1.12 m/s (1.19 per specs?) for WH24, 0.51 m/s for WH65B
     // Rain cup each count is 0.3mm for WH24, 0.01inch (0.254mm) for WH65B
     //if (model == MODEL_WH24) { // WH24
@@ -175,24 +175,26 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
           Serial.print(frame->WindGust);
         }
 
-    //  Rain 
+    //  Rain
+    int LaCrosseFactor = 10; // see 36_Lacrosse.pm in FHEM also!
     int rainfall_raw    = bytes[8] << 8 | bytes[9]; // rain tip counter
-    frame->Rain = rainfall_raw * rain_cup_count; // each tip is 0.3mm / 0.254mm
+    frame->Rain = rainfall_raw * rain_cup_count * LaCrosseFactor; // each tip is 0.3mm / 0.254mm
     
     // Wind direction (degree  N=0, NNE=22.5, S=180, ... )
     frame->WindDirection = bytes[2] | (bytes[3] & 0x80) << 1; // range 0-359 deg, 0x1ff if invalid
     
         if (m_debug) {
           Serial.print("   r: ");
-          Serial.print(frame->Rain);
+          Serial.print(frame->Rain/LaCrosseFactor);
 
           Serial.print("   wd: ");
           Serial.print(frame->WindDirection);
         }
 
     int uv_raw          = bytes[10] << 8 | bytes[11];               // range 0-20000, 0xffff if invalid
-    int light_raw       = bytes[12] << 16 | bytes[13] << 8 | bytes[14]; // 0xffffff if invalid
-    float light_lux     = light_raw * 0.1; // range 0.0-300000.0lux
+    long light_raw      = bytes[12] << 16 | bytes[13] << 8 | bytes[14]; // 0xffffff if invalid
+    // long light_raw2     = bytes[12] * 256 * 256 + bytes[13] * 256 + bytes[14]; // 0xffffff if invalid
+    // float light_lux     = light_raw * 0.1; // range 0.0-300000.0lux
     // Light = value/10 ; Watts/m Sqr. = Light/683 ;  Lux to W/m2 = Lux/126
 
     // UV value   UVI
@@ -214,7 +216,10 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     int uv_index   = 0;
     while (uv_index < 13 && uvi_upper[uv_index] < uv_raw) ++uv_index; 
     frame->UV =  uv_raw;
-    frame->Light =  light_raw;
+    // frame->Light =  light_raw;
+    frame->Light_b1 =  bytes[12];
+    frame->Light_b2 =  bytes[13];
+    frame->Light_b3 =  bytes[14];
 
             if (m_debug) {
           
@@ -222,19 +227,34 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
           Serial.print(uv_raw,1);
 
           Serial.print("   light_raw: ");
-          Serial.print(light_raw,1);
-          Serial.print("   12-16: ");
-          Serial.print(bytes[12]);
-          Serial.print("   13-8: ");
-          Serial.print(bytes[13]);
-          Serial.print("   14 : ");
+          Serial.print(light_raw);
+          // Serial.print("   light_raw2: ");
+          // Serial.print(light_raw2);
+          Serial.print("   12 13 14: ");
+          Serial.print(bytes[12], HEX);          
+          Serial.print(" ");
+          Serial.print(bytes[13], HEX);      
+          Serial.print(" ");    
+          Serial.print(bytes[14], HEX);
+          Serial.print(" <> ");    
+          Serial.print(bytes[12] << 16);          
+          Serial.print(" ");
+          Serial.print(bytes[13]<< 8);      
+          Serial.print(" ");    
+          Serial.print(bytes[14]);
+          Serial.print(" <<>> ");    
+          Serial.print(bytes[12]);          
+          Serial.print(" ");
+          Serial.print(bytes[13]);      
+          Serial.print(" ");    
           Serial.print(bytes[14]);
  
           Serial.print("   uv: ");
           Serial.print(frame->UV);
 
-          Serial.print("   light: ");
-          Serial.println(light_lux,1);
+          // Serial.print("   light: ");
+          // Serial.println(light_lux,1);
+          Serial.println();
         }
 
   }
