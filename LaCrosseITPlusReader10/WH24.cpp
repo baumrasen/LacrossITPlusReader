@@ -167,7 +167,7 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     // Wind gust is unscaled, multiply by wind speed factor 1.12 m/s
     frame->WindGust = gust_speed_raw * wind_speed_factor;
     
-            if (m_debug) {
+        if (m_debug) {
           Serial.print("   ws: ");
           Serial.print(frame->WindSpeed);
 
@@ -192,7 +192,7 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
         }
 
     int uv_raw          = bytes[10] << 8 | bytes[11];               // range 0-20000, 0xffff if invalid
-    long light_raw      = bytes[12] << 16 | bytes[13] << 8 | bytes[14]; // 0xffffff if invalid
+    // long light_raw      = bytes[12] << 16 | bytes[13] << 8 | bytes[14]; // 0xffffff if invalid
     // long light_raw2     = bytes[12] * 256 * 256 + bytes[13] * 256 + bytes[14]; // 0xffffff if invalid
     // float light_lux     = light_raw * 0.1; // range 0.0-300000.0lux
     // Light = value/10 ; Watts/m Sqr. = Light/683 ;  Lux to W/m2 = Lux/126
@@ -212,9 +212,9 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     // 4278-4650  11
     // 4651-5029  12
     // >=5230     13
-    int uvi_upper[] = {432, 851, 1210, 1570, 2017, 2450, 2761, 3100, 3512, 3918, 4277, 4650, 5029};
-    int uv_index   = 0;
-    while (uv_index < 13 && uvi_upper[uv_index] < uv_raw) ++uv_index; 
+    // int uvi_upper[] = {432, 851, 1210, 1570, 2017, 2450, 2761, 3100, 3512, 3918, 4277, 4650, 5029};
+    // int uv_index   = 0;
+    // while (uv_index < 13 && uvi_upper[uv_index] < uv_raw) ++uv_index; 
     frame->UV =  uv_raw;
     // frame->Light =  light_raw;
     frame->Light_b1 =  bytes[12];
@@ -223,34 +223,15 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
 
             if (m_debug) {
           
-          Serial.print("   uv_raw: ");
-          Serial.print(uv_raw,1);
-
-          Serial.print("   light_raw: ");
-          Serial.print(light_raw);
-          // Serial.print("   light_raw2: ");
-          // Serial.print(light_raw2);
-          Serial.print("   12 13 14: ");
-          Serial.print(bytes[12], HEX);          
-          Serial.print(" ");
-          Serial.print(bytes[13], HEX);      
-          Serial.print(" ");    
-          Serial.print(bytes[14], HEX);
-          Serial.print(" <> ");    
-          Serial.print(bytes[12] << 16);          
-          Serial.print(" ");
-          Serial.print(bytes[13]<< 8);      
-          Serial.print(" ");    
-          Serial.print(bytes[14]);
-          Serial.print(" <<>> ");    
-          Serial.print(bytes[12]);          
-          Serial.print(" ");
-          Serial.print(bytes[13]);      
-          Serial.print(" ");    
-          Serial.print(bytes[14]);
- 
           Serial.print("   uv: ");
           Serial.print(frame->UV);
+
+          Serial.print("   ligth_raw: ");
+          Serial.print(frame->Light_b1,HEX);
+          Serial.print(" ");
+          Serial.print(frame->Light_b2,HEX);
+          Serial.print(" ");
+          Serial.print(frame->Light_b3,HEX);
 
           // Serial.print("   light: ");
           // Serial.println(light_lux,1);
@@ -259,7 +240,6 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
 
   }
 }
-
 
 String WH24::AnalyzeFrame(byte *data) {
   struct Frame frame;
@@ -275,7 +255,7 @@ String WH24::GetFhemDataString(byte *data) {
   struct Frame frame2;
   DecodeFrame(data, &frame2);
   if (frame2.IsValid) {
-    fhemString2 = BuildFhemDataString(&frame2, 8);
+    fhemString2 = BuildFhemDataString(&frame2, 6);
     // fhemString2 = BuildKVDataString(&frame2, 7);
   }
   return fhemString2;

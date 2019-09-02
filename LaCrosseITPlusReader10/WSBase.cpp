@@ -105,23 +105,6 @@ String WSBase::BuildFhemDataString(struct Frame *frame, byte sensorType) {
   return pBuf;
 }
 
-String WSBase::AddLongWord(word value, bool hasValue) {
-  String result;
-
-  if (!hasValue) {
-    value = 0xFFFFFF;
-  }
-
-  result += ' ';
-  result += (byte)(value >> 16);
-  result += ' ';
-  result += (byte)(value >> 8);
-  result += ' ';
-  result += (byte)(value);
-
-  return result;
-}
-
 String WSBase::AddWord(word value, bool hasValue) {
   String result;
 
