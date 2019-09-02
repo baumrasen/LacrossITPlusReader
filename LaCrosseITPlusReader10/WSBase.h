@@ -24,8 +24,6 @@ public:
     bool  HasPressure;
     bool  HasUV;
     bool  HasLight;
-    bool  HasstrikesTotal;
-    bool  HasstrikesDistance;
 
     float Temperature;    // °C 
     byte  Humidity;       // %rH
@@ -35,20 +33,13 @@ public:
     float WindGust;       // m/s
     int Pressure;         // hPa
     int UV;
-    // long Light;            // lux
     byte  Light_b1;
     byte  Light_b2;
     byte  Light_b3;
-
-    int16_t strikesDistance ;
-    uint16_t strikesTotal ;
   };
 
-
 protected:
-  static String BuildKVDataString(struct Frame *frame, byte sensorType);
   static String BuildFhemDataString(struct Frame *frame, byte sensorType);
-  static String AddLongWord(word value, bool hasValue);
   static String AddWord(word value, bool hasValue);
   static String AddByte(byte value, bool hasValue);
   static float DecodeValue(byte q1, byte q2, byte q3);

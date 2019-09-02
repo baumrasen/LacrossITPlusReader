@@ -1,6 +1,5 @@
 #include "WH24.h"
 
-
 byte WH24::CalculateCRC(byte message[]) {          
 
 unsigned nBytes = 15 ;
@@ -84,9 +83,6 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
   frame->HasPressure = false;
   frame->HasUV = true;
   frame->HasLight = true;
-  frame->HasstrikesTotal = false;
-  frame->HasstrikesDistance = false;
-
 
   frame->Header = bytes[0] ;
   if (frame->Header == 0x24) {      // Check for family code 0x24
@@ -251,14 +247,17 @@ String WH24::AnalyzeFrame(byte *data) {
 }
 
 String WH24::GetFhemDataString(byte *data) {
-  String fhemString2 = "";
-  struct Frame frame2;
-  DecodeFrame(data, &frame2);
-  if (frame2.IsValid) {
-    fhemString2 = BuildFhemDataString(&frame2, 6);
-    // fhemString2 = BuildKVDataString(&frame2, 7);
+  String fhemString = "";
+  struct Frame frame;
+  DecodeFrame(data, &frame);
+  if (frame.IsValid) {
+    fhemString = BuildFhemDataString(&frame, 6);
+  } else {
+        if (m_debug) {
+          Serial.println("WH24 - frame is NOT valid");
+        }
   }
-  return fhemString2;
+  return fhemString;
 }
 
 bool WH24::TryHandleData(byte *data) {
@@ -270,8 +269,6 @@ bool WH24::TryHandleData(byte *data) {
 
   return fhemString.length() > 0;
 }
-
-
 
 bool WH24::IsValidDataRate(unsigned long dataRate) {
   return dataRate == 17241ul;

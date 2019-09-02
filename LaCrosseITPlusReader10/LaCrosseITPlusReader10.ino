@@ -10,28 +10,26 @@
 //            2014-03-14: I have this in SubVersion, so no need to do it here
 
 #define PROGNAME         "LaCrosseITPlusReader"
-#define PROGVERS         "10.1sJo" 
+#define PROGVERS         "10.1t?" 
 
 #include "SPI.h"
 #include "RFM.h"
 #include "SensorBase.h"
 #include "LaCrosse.h"
-// #include "LevelSenderLib.h"
-// #include "EMT7110.h"
-// #include "WT440XH.h"
-// #include "TX38IT.h"
+#include "LevelSenderLib.h"
+#include "EMT7110.h"
+#include "WT440XH.h"
+#include "TX38IT.h"
 #include "JeeLink.h"
 #include "Help.h"
 #include "BMP180.h"
 #include "WSBase.h"
-// #include "WS1080.h"
-// #include "TX22IT.h"
+#include "WS1080.h"
+#include "TX22IT.h"
 #include <Wire.h>
 #include "InternalSensors.h"
 #include "CustomSensor.h"
 #include "WH24.h"
-// #include "WH25.h"
-// #include "W136.h"
 
 // --- Configuration ---------------------------------------------------------------------------------------------------
 #define RECEIVER_ENABLED       1                     // Set to 0 if you don't want to receive 
@@ -41,7 +39,7 @@
 #define ENABLE_ACTIVITY_LED    1         // <n>a     set to 0 if the blue LED bothers
 unsigned long DATA_RATE_S1   = 17241ul;  // <n>c     use one of the possible data rates (for transmit on RFM #1)
 bool DEBUG                   = 0;        // <n>d     set to 1 to see debug messages
-unsigned long INITIAL_FREQ   = 868345;   // <n>f     initial frequency in kHz (5 kHz steps, 860480 ... 879515) 
+unsigned long INITIAL_FREQ   = 868300;   // <n>f     initial frequency in kHz (5 kHz steps, 860480 ... 879515) 
 int ALTITUDE_ABOVE_SEA_LEVEL = 0;        // <n>h     altituide above sea level
 byte TOGGLE_MODE_R1          = 3;        // <n>m     bits 1: 17.241 kbps, 2 : 9.579 kbps, 4 : 8.842 kbps (for RFM #1)
 byte TOGGLE_MODE_R2          = 3;        // <n>M     bits 1: 17.241 kbps, 2 : 9.579 kbps, 4 : 8.842 kbps (for RFM #2)
@@ -239,7 +237,6 @@ void HandleCommandO(byte rfmNbr, unsigned long value, byte *data, byte size) {
     }
   }
 
-
 }
 
 void HandleCommandS(byte *data, byte size) {
@@ -255,11 +252,8 @@ void HandleCommandS(byte *data, byte size) {
 
   CustomSensor::SendFrame(&frame, &rfm1, DATA_RATE_S1);
 
-
   rfm1.EnableReceiver(true);
 }
-
-
 
 // This function is for testing
 // void HandleCommandX(byte value) {
@@ -440,7 +434,6 @@ void HandleCommandX(unsigned long value) {
 
   ////WS1080::TryHandleData(payload);
   WH24::TryHandleData(payload);
-  // WH65::TryHandleData(payload);
 }
 
 void HandleCommandV() {
@@ -538,55 +531,45 @@ void HandleReceivedData(RFM *rfm) {
       frameLength = LaCrosse::FRAME_LENGTH;
     }
 
-//    // Try TX22IT (WS 1600)
-//    else if (TX22IT::IsValidDataRate(rfm->GetDataRate()) && TX22IT::TryHandleData(payload)) {
-//      frameLength = TX22IT::GetFrameLength(payload);
-//    }
-//
-//    // Try WS 1080
-//    else if (WS1080::IsValidDataRate(rfm->GetDataRate()) && WS1080::TryHandleData(payload)) {
-//      frameLength = WS1080::FRAME_LENGTH;
-//    }
+    // Try TX22IT (WS 1600)
+    else if (TX22IT::IsValidDataRate(rfm->GetDataRate()) && TX22IT::TryHandleData(payload)) {
+      frameLength = TX22IT::GetFrameLength(payload);
+    }
+
+    // Try WS 1080
+    else if (WS1080::IsValidDataRate(rfm->GetDataRate()) && WS1080::TryHandleData(payload)) {
+      frameLength = WS1080::FRAME_LENGTH;
+    }
     
     // Try WH24
    else if (WH24::IsValidDataRate(rfm->GetDataRate()) && WH24::TryHandleData(payload)) {
       frameLength = WH24::FRAME_LENGTH;
     }
-
-//    // Try WH25
-//    else if (WH25::IsValidDataRate(rfm->GetDataRate()) && WH25::TryHandleData(payload)) {
-//      frameLength = WH25::FRAME_LENGTH;
-//    }
-//
-//     // Try W136
-//    else if (W136::IsValidDataRate(rfm->GetDataRate()) && W136::TryHandleData(payload)) {
-//     frameLength = W136::FRAME_LENGTH;
-//    }
     
     // Try LevelSender
-//    else if (LevelSenderLib::IsValidDataRate(rfm->GetDataRate()) && LevelSenderLib::TryHandleData(payload)) {
-//      frameLength = LevelSenderLib::FRAME_LENGTH;
-//    }
+    else if (LevelSenderLib::IsValidDataRate(rfm->GetDataRate()) && LevelSenderLib::TryHandleData(payload)) {
+      frameLength = LevelSenderLib::FRAME_LENGTH;
+    }
 
-//    // Try EMT7110
-//    else if (EMT7110::IsValidDataRate(rfm->GetDataRate()) && EMT7110::TryHandleData(payload)) {
-//      frameLength = EMT7110::FRAME_LENGTH;
-//    }
-//
-//    // Try WT440XH
-//    else if (WT440XH::IsValidDataRate(rfm->GetDataRate()) && WT440XH::TryHandleData(payload)) {
-//      frameLength = WT440XH::FRAME_LENGTH;
-//    }
-//
-//    // Try TX38IT
-//    else if (TX38IT::IsValidDataRate(rfm->GetDataRate()) && TX38IT::TryHandleData(payload)) {
-//      frameLength = TX38IT::FRAME_LENGTH;
-//    }
+    // Try EMT7110
+    else if (EMT7110::IsValidDataRate(rfm->GetDataRate()) && EMT7110::TryHandleData(payload)) {
+      frameLength = EMT7110::FRAME_LENGTH;
+    }
+
+    // Try WT440XH
+    else if (WT440XH::IsValidDataRate(rfm->GetDataRate()) && WT440XH::TryHandleData(payload)) {
+      frameLength = WT440XH::FRAME_LENGTH;
+    }
+
+    // Try TX38IT
+    else if (TX38IT::IsValidDataRate(rfm->GetDataRate()) && TX38IT::TryHandleData(payload)) {
+      frameLength = TX38IT::FRAME_LENGTH;
+    }
 
     // Try CustomSensor
-//    else if (CustomSensor::IsValidDataRate(rfm->GetDataRate()) && CustomSensor::TryHandleData(payload)) {
-//      frameLength = CustomSensor::GetFrameLength(payload);
-//    }
+    else if (CustomSensor::IsValidDataRate(rfm->GetDataRate()) && CustomSensor::TryHandleData(payload)) {
+      frameLength = CustomSensor::GetFrameLength(payload);
+    }
     else if (PASS_PAYLOAD == 2) {
       for (int i = 0; i < PAYLOADSIZE; i++) {
         Serial.print(payload[i], HEX);
@@ -594,7 +577,6 @@ void HandleReceivedData(RFM *rfm) {
       }
       Serial.println();
     }
-
 
     if (RELAY && frameLength > 0) {
       delay(64);
@@ -684,7 +666,6 @@ void loop(void) {
 
 }
 
-
 void setup(void) {
   Serial.begin(57600);
   delay(200);
@@ -716,8 +697,7 @@ void setup(void) {
     rfm2.SetDataRate(DATA_RATE_R2);
     rfm2.EnableReceiver(true);
   }
-  
-  
+    
   if (DEBUG) {
     Serial.println("Radio setup complete. Starting to receive messages");
   }

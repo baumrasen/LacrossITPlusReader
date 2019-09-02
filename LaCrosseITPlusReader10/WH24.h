@@ -6,8 +6,6 @@
 #include "SensorBase.h"
 #include "LaCrosse.h"
 
-
-
 class WH24 : public WSBase {
     float  Pressure;        // hPa
   public:
@@ -20,12 +18,8 @@ class WH24 : public WSBase {
     static bool IsValidDataRate(unsigned long dataRate);
 
   protected:
-    //static String BuildFhemDataString(struct WH24::Frame *frame, byte sensorType);
-    //static String BuildKVDataString(struct WH24::Frame *frame, byte sensorType);
  uint8_t crc8(uint8_t const message[], unsigned nBytes, uint8_t polynomial, uint8_t init);
 
 };
 
-
 #endif
-
