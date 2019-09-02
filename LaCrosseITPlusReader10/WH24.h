@@ -16,11 +16,10 @@ class WH24 : public WSBase {
     static bool TryHandleData(byte *data);
     static String GetFhemDataString(byte *data);
     static bool IsValidDataRate(unsigned long dataRate);
-    static void ChangeModelTypeTo(int _model);
 
   protected:
  uint8_t crc8(uint8_t const message[], unsigned nBytes, uint8_t polynomial, uint8_t init);
- static int model;
+
 };
 
 #endif
