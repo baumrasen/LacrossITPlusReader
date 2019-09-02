@@ -62,8 +62,8 @@ unsigned byte, bit;
  * OK WS 159 8 4 232 60 0 3 6 194 0 0 0 0 0 3 100 0
  * 
  */
-#define MODEL_WH24 24 /* internal identifier for model WH24, family code is always 0x24 */
-#define MODEL_WH65B 65 /* internal identifier for model WH65B, family code is always 0x24 */
+// #define MODEL_WH24 24 /* internal identifier for model WH24, family code is always 0x24 */
+// #define MODEL_WH65B 65 /* internal identifier for model WH65B, family code is always 0x24 */
 
 void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
 
@@ -102,10 +102,6 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     
  //   if (crc != bytes[15] || checksum != bytes[16]) {
     if (crc != bytes[15]) {
-        if (m_debug) {
-          Serial.print("## CRC FAIL ### - WH24: ");
-          Serial.println(crc, HEX);
-        }
         frame->IsValid = false;
     } else {
         frame->IsValid = true;
@@ -119,29 +115,13 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     // int low_battery     = (bytes[3] & 0x08) >> 3;
     int low_battery     = (bytes[3] & 0x08) >> 3;
     frame->LowBatteryFlag = low_battery;
-
-        if (m_debug) {
-          Serial.print("WH24 - id: ");
-          Serial.print(frame->ID);
-
-          Serial.print("   batt: ");
-          Serial.print(frame->LowBatteryFlag);
-        }
         
     // Temperature (°C)
     int temp = ((bytes[3] & 0x07) << 8) | bytes[4]; // 0x7ff if invalid
     frame->Temperature = ((temp * 0.1) - 40.0);     // range -40.0-60.0 C
     // Humidity (%rH)
     frame->Humidity = bytes[5];                     // 0xff if invalid
-   // frame->Pressure = ((bytes[4] << 8) | bytes[5]) / 10.0;
-   
-        if (m_debug) {
-          Serial.print("   t: ");
-          Serial.print(frame->Temperature);
-
-          Serial.print("   h: ");
-          Serial.print(frame->Humidity);
-        }
+    // frame->Pressure = ((bytes[4] << 8) | bytes[5]) / 10.0;
 
     // Wind speed (m/s)
     int wind_speed_raw  = bytes[6] | (bytes[3] & 0x10) << 4; // 0x1ff if invalid
@@ -162,14 +142,6 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
      int gust_speed_raw  = bytes[7];             // 0xff if invalid
     // Wind gust is unscaled, multiply by wind speed factor 1.12 m/s
     frame->WindGust = gust_speed_raw * wind_speed_factor;
-    
-        if (m_debug) {
-          Serial.print("   ws: ");
-          Serial.print(frame->WindSpeed);
-
-          Serial.print("   wg: ");
-          Serial.print(frame->WindGust);
-        }
 
     //  Rain
     int LaCrosseFactor = 10; // see 36_Lacrosse.pm in FHEM also!
@@ -178,14 +150,6 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     
     // Wind direction (degree  N=0, NNE=22.5, S=180, ... )
     frame->WindDirection = bytes[2] | (bytes[3] & 0x80) << 1; // range 0-359 deg, 0x1ff if invalid
-    
-        if (m_debug) {
-          Serial.print("   r: ");
-          Serial.print(frame->Rain/LaCrosseFactor);
-
-          Serial.print("   wd: ");
-          Serial.print(frame->WindDirection);
-        }
 
     int uv_raw          = bytes[10] << 8 | bytes[11];               // range 0-20000, 0xffff if invalid
     // long light_raw      = bytes[12] << 16 | bytes[13] << 8 | bytes[14]; // 0xffffff if invalid
@@ -217,23 +181,6 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     frame->Light_b2 =  bytes[13];
     frame->Light_b3 =  bytes[14];
 
-            if (m_debug) {
-          
-          Serial.print("   uv: ");
-          Serial.print(frame->UV);
-
-          Serial.print("   ligth_raw: ");
-          Serial.print(frame->Light_b1,HEX);
-          Serial.print(" ");
-          Serial.print(frame->Light_b2,HEX);
-          Serial.print(" ");
-          Serial.print(frame->Light_b3,HEX);
-
-          // Serial.print("   light: ");
-          // Serial.println(light_lux,1);
-          Serial.println();
-        }
-
   }
 }
 
@@ -252,10 +199,6 @@ String WH24::GetFhemDataString(byte *data) {
   DecodeFrame(data, &frame);
   if (frame.IsValid) {
     fhemString = BuildFhemDataString(&frame, 6);
-  } else {
-        if (m_debug) {
-          Serial.println("WH24 - frame is NOT valid");
-        }
   }
   return fhemString;
 }

@@ -211,11 +211,10 @@ void SetDebugMode(boolean mode) {
   DEBUG = mode;
   // LevelSenderLib::SetDebugMode(mode);
   // WT440XH::SetDebugMode(mode);
-  WSBase::SetDebugMode(mode);
-  WH24::SetDebugMode(mode);
+  // WSBase::SetDebugMode(mode);
+  // WH24::SetDebugMode(mode);
   rfm1.SetDebugMode(mode);
   rfm2.SetDebugMode(mode);
-
 }
 
 void HandleCommandO(byte rfmNbr, unsigned long value, byte *data, byte size) {
@@ -256,184 +255,24 @@ void HandleCommandS(byte *data, byte size) {
 }
 
 // This function is for testing
-// void HandleCommandX(byte value) {
-void HandleCommandX(unsigned long value) {
+void HandleCommandX(byte value) {
   //// A8 C0 58 5E 00 00 00 86 0A D8
 
   //  byte payload[10];
-  //// A8 C0 58 63 01 03 00 88 08 C6
-  //// ID : 8C, T = 8.8`C, relH = 99 % , Wvel = 0.3m / s, Wmax = 1.0m / s, Wdir = S, Rain = 40.8mm
-  ////payload[0] = 0xA8;
-  ////payload[1] = 0xC0;
-  ////payload[2] = 0x58;
-  ////payload[3] = 0x63;
-  ////payload[4] = 0x01;
-  ////payload[5] = 0x03;
-  ////payload[6] = 0x00;
-  ////payload[7] = 0x88;
-  ////payload[8] = 0x08;
-  ////payload[9] = 0xC6;
+  // A8 C0 58 63 01 03 00 88 08 C6
+  // ID : 8C, T = 8.8`C, relH = 99 % , Wvel = 0.3m / s, Wmax = 1.0m / s, Wdir = S, Rain = 40.8mm
+  //payload[0] = 0xA8;
+  //payload[1] = 0xC0;
+  //payload[2] = 0x58;
+  //payload[3] = 0x63;
+  //payload[4] = 0x01;
+  //payload[5] = 0x03;
+  //payload[6] = 0x00;
+  //payload[7] = 0x88;
+  //payload[8] = 0x08;
+  //payload[9] = 0xC6;
 
-  byte payload[18];
-
-  // 55 55 55 55 55 51 6e a1 24 f9 fc 14 d1 e0 00 00 00 40 00 10 00 00 07 aa cf 00 00
-  // ID: 159, T: 26.6 C, relH: 60 %, Wdir: 319, Wind speed: 0.0 m/s, Gust speed: 0.0 m/s, Rainfall  : 2.0 mm, UV: 2, UVI: 0
-  // Light     : 0.0 lux      Battery   : OK            Integrity : CRC
-
-  //byte payload[18];
-  //  payload[0] = 0x24;
-  //  payload[1] = 0xf9;
-  //  payload[2] = 0xfc;
-  //  payload[3] = 0x14;
-  //  payload[4] = 0xd1;
-  //  payload[5] = 0xe0;
-  //  payload[6] = 0x00;
-  //  payload[7] = 0x00;
-  //  payload[8] = 0x00;
-  //  payload[9] = 0x40;
-  //  payload[10] = 0x00;
-  //  payload[11] = 0x10;
-  //  payload[12] = 0x00;
-  //  payload[13] = 0x00;
-  //  payload[14] = 0x07;
-  //  payload[15] = 0xaa;
-  //  payload[16] = 0xcf;
-  //  payload[17] = 0x00;
-
-  // bsp for wh65b from rtl_433 github
-  // 24 50 67 e2 87 41 00 00 00 01 00 02 00 00 00 8c 14 20 1
-
-  //  byte payload[18];
-  //  payload[0] = 0x24;
-  //  payload[1] = 0x50;
-  //  payload[2] = 0x6
-  //  payload[3] = 0xe2;
-  //  payload[4] = 0x87;
-  //  payload[5] = 0x41;
-  //  payload[6] = 0x00;
-  //  payload[7] = 0x00;
-  //  payload[8] = 0x00;
-  //  payload[9] = 0x01;
-  //  payload[10] = 0x00;
-  //  payload[11] = 0x02;
-  //  payload[12] = 0x00;
-  //  payload[13] = 0x00;
-  //  payload[14] = 0x00;
-  //  payload[15] = 0x8c;
-  //  payload[16] = 0x14;
-  //  payload[17] = 0x20;
-
-  // bsp for wh24a from rtl_433 github
-  // 24 bf 0a e2 06 4e 08 02 00 4a 00 01 00 00 00 8f 07 2
-
-  // byte payload[18];
-  //  payload[0] = 0x24;
-  //  payload[1] = 0xbf;
-  //  payload[2] = 0x0a;
-  //  payload[3] = 0xe2;
-  //  payload[4] = 0x06;
-  //  payload[5] = 0x4e;
-  //  payload[6] = 0x08;
-  //  payload[7] = 0x02;
-  //  payload[8] = 0x00;
-  //  payload[9] = 0x4a;
-  //  payload[10] = 0x00;
-  //  payload[11] = 0x01;
-  //  payload[12] = 0x00;
-  //  payload[13] = 0x00;
-  //  payload[14] = 0x00;
-  //  payload[15] = 0x8f;
-  //  payload[16] = 0x07;
-  //  payload[17] = 0x00;
-
-  switch (value) {
-    case 1:
-      // some data from rtl_433 receiving own signal
-      payload[0] = 0x24;
-      payload[1] = 0xf9;
-      payload[2] = 0xfc;
-      payload[3] = 0x14;
-      payload[4] = 0xd1;
-      payload[5] = 0xe0;
-      payload[6] = 0x00;
-      payload[7] = 0x00;
-      payload[8] = 0x00;
-      payload[9] = 0x40;
-      payload[10] = 0x00;
-      payload[11] = 0x10;
-      payload[12] = 0x00;
-      payload[13] = 0x00;
-      payload[14] = 0x07;
-      payload[15] = 0xaa;
-      payload[16] = 0xcf;
-      payload[17] = 0x00;
-      break;
-    case 2:
-      // bsp for wh65b from rtl_433 github
-      // 24 50 67 e2 87 41 00 00 00 01 00 02 00 00 00 8c 14 20 1
-      payload[0] = 0x24;
-      payload[1] = 0x50;
-      payload[2] = 0x67;
-      payload[3] = 0xe2;
-      payload[4] = 0x87;
-      payload[5] = 0x41;
-      payload[6] = 0x00;
-      payload[7] = 0x00;
-      payload[8] = 0x00;
-      payload[9] = 0x01;
-      payload[10] = 0x00;
-      payload[11] = 0x02;
-      payload[12] = 0x00;
-      payload[13] = 0x00;
-      payload[14] = 0x00;
-      payload[15] = 0x8c;
-      payload[16] = 0x14;
-      payload[17] = 0x20;
-      break;
-    case 3:
-      // bsp for wh24a from rtl_433 github
-      payload[0] = 0x24;
-      payload[1] = 0xbf;
-      payload[2] = 0x0a;
-      payload[3] = 0xe2;
-      payload[4] = 0x06;
-      payload[5] = 0x4e;
-      payload[6] = 0x08;
-      payload[7] = 0x02;
-      payload[8] = 0x00;
-      payload[9] = 0x4a;
-      payload[10] = 0x00;
-      payload[11] = 0x01;
-      payload[12] = 0x00;
-      payload[13] = 0x00;
-      payload[14] = 0x00;
-      payload[15] = 0x8f;
-      payload[16] = 0x07;
-      payload[17] = 0x00;
-    default:
-      payload[0] = 0x24;
-      payload[1] = 0xbf;
-      payload[2] = 0x0a;
-      payload[3] = 0xe2;
-      payload[4] = 0x06;
-      payload[5] = 0x4e;
-      payload[6] = 0x08;
-      payload[7] = 0x02;
-      payload[8] = 0x00;
-      payload[9] = 0x4a;
-      payload[10] = 0x00;
-      payload[11] = 0x01;
-      payload[12] = 0x00;
-      payload[13] = 0x00;
-      payload[14] = 0x00;
-      payload[15] = 0x8f;
-      payload[16] = 0x07;
-      payload[17] = 0x00;
-      break;
-  }
-
-  ////WS1080::TryHandleData(payload);
-  WH24::TryHandleData(payload);
+  //WS1080::TryHandleData(payload);
 }
 
 void HandleCommandV() {
@@ -501,8 +340,8 @@ void HandleReceivedData(RFM *rfm) {
     ////EMT7110::AnalyzeFrame(payload);
     ////TX38IT::AnalyzeFrame(payload);
     ////CustomSensor::AnalyzeFrame(payload);
-    Serial.print(WH24::AnalyzeFrame(payload));
-    Serial.println();
+    // Serial.print(WH24::AnalyzeFrame(payload));
+    // Serial.println();
   }
   else if (PASS_PAYLOAD == 1) {
     jeeLink.Blink(1);
