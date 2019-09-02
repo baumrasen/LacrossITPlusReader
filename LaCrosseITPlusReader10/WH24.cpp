@@ -132,21 +132,24 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     //    wind_speed_factor = 1.12;
     //    rain_cup_count = 0.3;
     //} else { // WH65B
-        wind_speed_factor = 0.51;
-        rain_cup_count = 0.254;
+    //    wind_speed_factor = 0.51;
+    //    rain_cup_count = 0.254;
     //}
     // Wind speed is scaled by 8, wind speed = raw / 8 * 1.12 m/s (0.51 for WH65B)
-    frame->WindSpeed = wind_speed_raw * 0.125 * wind_speed_factor;
+    // frame->WindSpeed = wind_speed_raw * 0.125 * wind_speed_factor;
+    frame->WindSpeed = wind_speed_raw * 0.125; // factor will be multipied in 36_Lacrosse.pm in FHEM
     
     // Wind gust (m/s)
      int gust_speed_raw  = bytes[7];             // 0xff if invalid
     // Wind gust is unscaled, multiply by wind speed factor 1.12 m/s
-    frame->WindGust = gust_speed_raw * wind_speed_factor;
+    // frame->WindGust = gust_speed_raw * wind_speed_factor;
+    frame->WindGust = gust_speed_raw; // factor will be multipied in 36_Lacrosse.pm in FHEM
 
     //  Rain
     int LaCrosseFactor = 10; // see 36_Lacrosse.pm in FHEM also!
     int rainfall_raw    = bytes[8] << 8 | bytes[9]; // rain tip counter
-    frame->Rain = rainfall_raw * rain_cup_count * LaCrosseFactor; // each tip is 0.3mm / 0.254mm
+    // frame->Rain = rainfall_raw * rain_cup_count * LaCrosseFactor; // each tip is 0.3mm / 0.254mm
+    frame->Rain = rainfall_raw * LaCrosseFactor; // each tip is 0.3mm / 0.254mm --> rain_cup_count will be multipied in 36_Lacrosse.pm in FHEM
     
     // Wind direction (degree  N=0, NNE=22.5, S=180, ... )
     frame->WindDirection = bytes[2] | (bytes[3] & 0x80) << 1; // range 0-359 deg, 0x1ff if invalid
@@ -180,7 +183,6 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     frame->Light_b1 =  bytes[12];
     frame->Light_b2 =  bytes[13];
     frame->Light_b3 =  bytes[14];
-
   }
 }
 
