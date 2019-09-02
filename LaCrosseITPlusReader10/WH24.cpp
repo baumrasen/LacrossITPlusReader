@@ -62,8 +62,10 @@ unsigned byte, bit;
  * OK WS 159 8 4 232 60 0 3 6 194 0 0 0 0 0 3 100 0
  * 
  */
-// #define MODEL_WH24 24 /* internal identifier for model WH24, family code is always 0x24 */
-// #define MODEL_WH65B 65 /* internal identifier for model WH65B, family code is always 0x24 */
+#define MODEL_WH24A 24 /* internal identifier for model WH24A, family code is always 0x24 */
+#define MODEL_WH65B 65 /* internal identifier for model WH65B, family code is always 0x24 */
+
+int WH24::model = MODEL_WH24A;
 
 void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
 
@@ -128,13 +130,13 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     float wind_speed_factor, rain_cup_count;
     // Wind speed factor is 1.12 m/s (1.19 per specs?) for WH24, 0.51 m/s for WH65B
     // Rain cup each count is 0.3mm for WH24, 0.01inch (0.254mm) for WH65B
-    //if (model == MODEL_WH24) { // WH24
-    //    wind_speed_factor = 1.12;
-    //    rain_cup_count = 0.3;
-    //} else { // WH65B
+    if (model == MODEL_WH24A) { // WH24
+        wind_speed_factor = 1.12;
+        rain_cup_count = 0.3;
+    } else { // WH65B
         wind_speed_factor = 0.51;
         rain_cup_count = 0.254;
-    //}
+    }
     // Wind speed is scaled by 8, wind speed = raw / 8 * 1.12 m/s (0.51 for WH65B)
     frame->WindSpeed = wind_speed_raw * 0.125 * wind_speed_factor;
     
@@ -215,4 +217,10 @@ bool WH24::TryHandleData(byte *data) {
 
 bool WH24::IsValidDataRate(unsigned long dataRate) {
   return dataRate == 17241ul;
+}
+
+void WH24::ChangeModelTypeTo(int _model) {
+  // MODEL_WH24A --> int 24 /* internal identifier for model WH24A, family code is always 0x24 */
+  // MODEL_WH65B --> int 65 /* internal identifier for model WH65B, family code is always 0x24 */
+  model = _model;
 }
