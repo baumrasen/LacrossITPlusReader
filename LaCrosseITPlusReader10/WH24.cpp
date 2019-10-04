@@ -175,11 +175,12 @@ void WH24::DecodeFrame(byte *bytes, struct Frame *frame) {
     // 4278-4650  11
     // 4651-5029  12
     // >=5230     13
-    // int uvi_upper[] = {432, 851, 1210, 1570, 2017, 2450, 2761, 3100, 3512, 3918, 4277, 4650, 5029};
-    // int uv_index   = 0;
-    // while (uv_index < 13 && uvi_upper[uv_index] < uv_raw) ++uv_index; 
-    frame->UV =  uv_raw;
-    // frame->Light =  light_raw;
+    int uvi_upper[] = {432, 851, 1210, 1570, 2017, 2450, 2761, 3100, 3512, 3918, 4277, 4650, 5029};
+    int uv_index   = 0;
+    while (uv_index < 13 && uvi_upper[uv_index] < uv_raw) ++uv_index; 
+    // frame->UV =  uv_raw;
+    frame->UV =  uv_index;
+    /// frame->Light =  light_raw;
     frame->Light_b1 =  bytes[12];
     frame->Light_b2 =  bytes[13];
     frame->Light_b3 =  bytes[14];
